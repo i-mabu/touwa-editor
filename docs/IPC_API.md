@@ -1,0 +1,115 @@
+# IPC API Reference
+
+## Boundary
+
+Renderer は Node.js API を直接利用しません。Preload が `window.touwa` として最小限の API を公開し、Main が IPC の実装と入力検証を担当します。
+
+## Shared types
+
+```ts
+export type FileEntry = {
+  name: string;
+  relativePath: string;
+  kind: "file" | "directory";
+  size?: number;
+  mtimeMs?: number;
+};
+
+export type FileSnapshot = {
+  content: string;
+  mtimeMs: number;
+  size: number;
+  hash: string; // SHA-256 of the UTF-8 content
+};
+
+export type SearchOptions = {
+  caseSensitive?: boolean;
+  regex?: boolean;
+  maxMatches?: number;
+};
+
+export type SearchMatch = {
+  relativePath: string;
+  line: number;
+  column: number;
+  lineText: string;
+};
+```
+
+## Workspace API
+
+### `workspace.open`
+
+OS のディレクトリ選択ダイアログを開きます。引数はなく、戻り値は `{ root, entries }` またはキャンセル時の `null` です。開いた Workspace の Watcher を開始し、外部変更を `workspace:changed` で Renderer へ送ります。
+
+### `workspace.list`
+
+現在の Renderer に割り当てられた Workspace の直下エントリを取得します。引数はなく、戻り値は `FileEntry[]` です。
+
+### `workspace.listDir(relativeDir)`
+
+指定ディレクトリの直下エントリを取得します。Explorer の遅延読み込み用です。`relativeDir` は Workspace 相対パスで、空文字はルートを表します。ディレクトリ以外や Workspace 外は拒否します。
+
+### `workspace.search(query, options?)`
+
+Workspace 内をテキスト検索します。`query` は1〜200文字、`options` は `caseSensitive` / `regex` / `maxMatches`（1〜500に丸めて適用）です。`.git` / `node_modules` / `out` / `dist` / `release` と隠しファイル、1MBを超えるファイル、バイナリは除外します。最大2000ファイル／500件までで、戻り値は `{ matches, truncated, filesSearched }` です。
+
+### `workspace.replace(query, replacement, options?)`
+
+検索に一致した箇所をすべて置換します（検索結果の上限500件には制限されません。対象ファイルの上限は検索と同じ2000ファイル／1MBまで）。各ファイルは読み直し→置換→競合チェック付き Atomic Write で保存します。置換直前に外部変更があったファイルはスキップされ、戻り値の `skipped` に入ります。プレーンテキスト置換では置換文字列はリテラルとして扱い、`$` の置換パターンが有効なのは正規表現モードだけです。戻り値は `{ filesChanged, totalReplacements, perFile, skipped }` です。
+
+### `workspace.files`
+
+Workspace 内のファイルの相対パス一覧を取得します。Quick Open 用で、最大2000件、`.git` / `node_modules` などを除外します。
+
+### `workspace.create(relativePath, kind)`
+
+空のファイルまたはディレクトリを作成します。`kind` は `'file'` / `'directory'` です。既存の名前、Workspace 外、`.git` への作成は拒否します。
+
+### `workspace.rename(oldRelativePath, newRelativePath)`
+
+Workspace 内でファイル／ディレクトリの名前を変更・移動します。移動先が既存の場合、Workspace 外の場合、`.git` に関わる場合は拒否します。
+
+### `workspace.delete(relativePath)`
+
+ファイルまたはディレクトリを削除します。ディレクトリは中身ごと削除します。Workspace ルートと `.git` の削除は拒否します。
+
+### `workspace.onChanged(listener)`
+
+Main の Watcher からの外部変更通知を受け取ります。`{ relativePath, kind }` が渡され、戻り値は購読解除関数です。Renderer は通知を受けたら `file.stat` で確認し、開いているタブに外部変更フラグを立てます。
+
+## File API
+
+### `file.read(relativePath)`
+
+Workspace 相対パスのファイルを UTF-8 で読み込みます。絶対パス、Workspace 外、symlink による境界脱出、ディレクトリの読み込みは拒否します。戻り値は `FileSnapshot`（内容＋mtime＋サイズ＋SHA-256）です。
+
+### `file.stat(relativePath)`
+
+ファイルの mtime・サイズ・SHA-256 ハッシュを取得します。外部変更の確認用で、内容は返しません。
+
+### `file.write(relativePath, content, expectedMtimeMs?)`
+
+Workspace 相対パスへ UTF-8 で保存します。パス境界、親ディレクトリ境界、コンテンツサイズを Main で検証します。保存は同一ディレクトリの一時ファイルへの書き込み＋rename による Atomic Write です。`expectedMtimeMs` を渡すと、ディスクの mtime がそれと異なる場合に保存を拒否し、外部変更の無言上書きを防ぎます。明示的な上書き保存のときだけ省略します。戻り値は保存後の `FileSnapshot` です。
+
+```ts
+const snapshot = await window.touwa.file.read("src/index.ts");
+const saved = await window.touwa.file.write(
+  "src/index.ts",
+  content,
+  snapshot.mtimeMs,
+);
+```
+
+## Error policy
+
+Renderer にはユーザーが対処できるメッセージを返し、内部パスや秘密情報を不要に露出させません。Main では原因を開発者向けログに記録しますが、token、password、環境変数の値は記録しません。
+
+## Adding a new channel
+
+1. Preload に型付きメソッドを追加する。
+2. Main の `registerIpc` に明示的な channel を登録する。
+3. すべての引数を Main で実行時検証する。
+4. `verify:all` に関連する検証を追加する。
+5. Renderer へ Node.js API や任意 channel 呼び出し API を公開しない。
+6. API の変更を CHANGELOG と必要な ADR に記載する。
