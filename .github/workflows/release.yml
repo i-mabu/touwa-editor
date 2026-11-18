@@ -21,7 +21,11 @@ jobs:
       - run: npm run package
       - shell: pwsh
         run: |
-          $hashes = Get-ChildItem release -Recurse -File | Get-FileHash -Algorithm SHA256
+          $hashes = Get-ChildItem release -Filter *.exe -File | Get-FileHash -Algorithm SHA256
           $hashes | Out-File release/SHA256SUMS.txt
       - uses: softprops/action-gh-release@v2
-        with: { files: "release/**", generate_release_notes: true }
+        with:
+          files: |
+            release/*.exe
+            release/SHA256SUMS.txt
+          generate_release_notes: true
