@@ -22,7 +22,7 @@ Explorer selection -> model registry -> tab state -> editor group layout
 
 ## Phase 3 — Developer Tools
 
-**Status: ⏳ 一部実装（Git／Diagnostics／Tasks／Terminal／LSP／Debugger まで）**
+**Status: ✅ 実装済み（外部 DAP アダプタの接続を除く）**
 
 Language Server、Completion、Hover、Signature Help、Diagnostics、Git、Integrated Terminal、Tasks、Debugger / DAP を追加します。外部 process は `shell: false`、argv 分離、cwd 検証、timeout、stop、exit code、stdout / stderr 分離を共通要件とします。
 
@@ -37,7 +37,9 @@ Language Server、Completion、Hover、Signature Help、Diagnostics、Git、Inte
 
 - Tasks: `.touwa/tasks.json` のタスク定義を Tasks パネルから実行（明示的な実行操作のみ、自動実行なし）。定義の検証は Main で行い、Renderer からはラベルだけを受けます。書式は `docs/TASKS.md`。
 
-- 常駐プロセスセッション基盤（`src/main/process/session-manager.ts`）と Terminal パネル（Ctrl+`）。シェルをワークスペースで起動し、入出力をストリーミングします。現状はパイプ接続のコンソールで PTY ではないため、TTY が必要な全画面プログラムは動作しません。PTY 化は今後の課題です。セッション基盤は言語サーバー接続にも流用できます。
+- 常駐プロセスセッション基盤（`src/main/process/session-manager.ts`）と Terminal パネル（Ctrl+`）。シェルをワークスペースで起動し、入出力をストリーミングします。セッション基盤は言語サーバー接続にも流用できます。
+
+- Terminal の PTY 化: セッションは node-pty による疑似端末で起動します（`src/main/process/pty-manager.ts`）。対話プロンプト、エコーなしのパスワード入力、Ctrl+C、isatty 判定が実端末どおりに機能します。node-pty（ネイティブモジュール）を読み込めない環境ではパイプ接続に自動でフォールバックし、パネルに接続モード（PTY / パイプ）を表示します。パネルはスクロール型コンソールのため、全画面 TUI の描画には対応しません。
 
 - Language Server 第一弾: 同梱の typescript-language-server による常駐型の診断。開いている TypeScript / JavaScript ファイルを全文同期し（変更は Renderer で 400ms デバウンス）、サーバーが発行する診断を tsc と同じ形式に変換して Problems パネルに常時表示します（出典は [lsp] / [tsc] で区別）。サーバーはワークスペース自身の TypeScript を優先し、無ければ同梱版を使います。プロセス管理はセッション基盤を、フレーミングと JSON-RPC は `src/main/lsp/` を使います。
 
@@ -45,7 +47,7 @@ Language Server、Completion、Hover、Signature Help、Diagnostics、Git、Inte
 
 - Debugger 第一弾: Node.js デバッガ。対象ファイル（.js / .mjs / .cjs）を `node --inspect-brk` で起動し、V8 Inspector（CDP）を Main の `src/main/debug/` が DAP 方式の API に変換します。Debug パネル（Ctrl+Shift+D）から開始／停止／再開／一時停止／ステップ実行ができ、コールスタックと変数（オブジェクトは展開可能）を表示します。ブレークポイントはエディタのガターマージン（行番号の左）のクリックで切り替え、停止中の行はエディタにハイライトします。ブレークポイントは実行中の変更も即時反映され、ファイルの削除・リネームにも追従します。同時に実行できるセッションは1つです。
 
-未実装: ターミナルの PTY 化、外部 DAP アダプタ（他言語デバッガ）の接続。
+未実装: 外部 DAP アダプタ（他言語デバッガ）の接続。
 
 ## Phase 4 — Extensibility
 

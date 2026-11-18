@@ -3,7 +3,7 @@ import type { JSX } from "react";
 import type { TerminalDataEvent, TerminalExitEvent } from "./types";
 
 type TerminalPanelProps = {
-  onStart: () => Promise<{ id: string; shell: string }>;
+  onStart: () => Promise<{ id: string; shell: string; mode: "pty" | "pipe" }>;
   onWrite: (id: string, data: string) => Promise<boolean>;
   onKill: (id: string) => Promise<boolean>;
   onData: (callback: (event: TerminalDataEvent) => void) => () => void;
@@ -23,6 +23,7 @@ export default function TerminalPanel({
   const [input, setInput] = useState("");
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [shell, setShell] = useState("");
+  const [mode, setMode] = useState<"pty" | "pipe">("pipe");
   const [state, setState] = useState<"starting" | "running" | "exited">(
     "starting",
   );
@@ -64,6 +65,7 @@ export default function TerminalPanel({
       sessionRef.current = result.id;
       setSessionId(result.id);
       setShell(result.shell);
+      setMode(result.mode);
       setState("running");
     } catch (e) {
       setState("exited");
@@ -93,15 +95,27 @@ export default function TerminalPanel({
     if (!sessionId || state !== "running") return;
     const line = input;
     setInput("");
-    // A pipe-based shell does not echo input, so echo it locally to
-    // keep the console readable.
-    setOutput((prev) => `${prev}${line}\n`);
-    void onWrite(sessionId, `${line}\n`).catch(() => undefined);
+    if (mode === "pty") {
+      // The PTY echoes input itself; Enter is CR on a terminal.
+      void onWrite(sessionId, `${line}\r`).catch(() => undefined);
+    } else {
+      // A pipe-based shell does not echo input, so echo it locally
+      // to keep the console readable.
+      setOutput((prev) => `${prev}${line}\n`);
+      void onWrite(sessionId, `${line}\n`).catch(() => undefined);
+    }
+  }
+
+  function sendInterrupt(): void {
+    if (!sessionId || state !== "running") return;
+    void onWrite(sessionId, "\x03").catch(() => undefined);
   }
 
   return (
     <aside className="git-panel">
-      <div className="pane-title">TERMINAL{shell ? ` — ${shell}` : ""}</div>
+      <div className="pane-title">
+        TERMINAL{shell ? ` — ${shell} (${mode === "pty" ? "PTY" : "パイプ"})` : ""}
+      </div>
       <div className="git-body terminal-body">
         {error && <div className="search-info">{error}</div>}
         <pre ref={outputRef} className="terminal-output">
@@ -120,6 +134,15 @@ export default function TerminalPanel({
               placeholder="コマンドを入力して Enter"
               aria-label="ターミナル入力"
             />
+            {mode === "pty" && (
+              <button
+                className="git-row-action task-run"
+                title="Ctrl+C を送信"
+                onClick={sendInterrupt}
+              >
+                ^C
+              </button>
+            )}
             <button
               className="git-row-action task-run"
               title="セッションを終了"
@@ -137,8 +160,9 @@ export default function TerminalPanel({
         )}
       </div>
       <div className="search-hint">
-        パイプ接続のコンソールです。対話型の全画面プログラム（TTY
-        が必要なもの）は動作しません。
+        {mode === "pty"
+          ? "PTY 接続です。対話プロンプトや Ctrl+C が機能します。全画面 TUI の描画には未対応です。"
+          : "パイプ接続のコンソールです（PTY を利用できませんでした）。対話型の全画面プログラム（TTY が必要なもの）は動作しません。"}
       </div>
     </aside>
   );

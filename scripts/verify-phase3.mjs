@@ -129,6 +129,14 @@ const required = [
     ["PROBLEMS", "lspDiagnostics", "onRunDiagnostics", "onJumpTo"],
   ],
   [
+    "src/main/process/pty-manager.ts",
+    ["PtyManager", "node-pty", "loadModule", "DEFAULT_PTY_COLS"],
+  ],
+  [
+    "src/main/terminal/terminal-service.ts",
+    ["TerminalService", "terminalService", "shellCandidates", '"pty"', '"pipe"'],
+  ],
+  [
     "src/main/debug/debug-service.ts",
     [
       "DebugService",

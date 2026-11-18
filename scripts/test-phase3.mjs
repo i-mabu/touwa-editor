@@ -68,6 +68,7 @@ import {
   mapRemoteProperties,
   urlToRelativePath,
 } from "../src/main/debug/debug-service.ts";
+import { PtyManager } from "../src/main/process/pty-manager.ts";
 
 const execFileAsync = promisify(execFile);
 
@@ -608,6 +609,66 @@ test("TerminalService runs the platform shell end to end", async () => {
   assert.ok(shell.length > 0);
   service.write(id, "echo terminal-ok\n");
   await waitFor(() => received.includes("terminal-ok"));
+  service.kill(id);
+  await waitFor(() => exited);
+});
+
+test("PtyManager gives the child a real TTY and echoes input", async (t) => {
+  const manager = new PtyManager();
+  if (!(await manager.available())) {
+    t.skip("node-pty is not available in this environment");
+    return;
+  }
+  const root = await mkdtemp(path.join(tmpdir(), "touwa-phase3-pty-"));
+  let received = "";
+  let exited = false;
+  const id = await manager.start(
+    {
+      command: "node",
+      args: [
+        "-e",
+        "console.log('isTTY=' + Boolean(process.stdout.isTTY)); process.stdin.on('data', (d) => console.log('got:' + String(d).trim()));",
+      ],
+      cwd: root,
+    },
+    {
+      onData: (event) => {
+        received += event.text;
+      },
+      onExit: () => {
+        exited = true;
+      },
+    },
+  );
+  await waitFor(() => received.includes("isTTY=true"));
+  manager.write(id, "hello-pty\r");
+  await waitFor(() => received.includes("got:hello-pty"));
+  assert.equal(manager.resize(id, 100, 30), true);
+  assert.equal(manager.write("pty-999", "x"), false);
+  manager.kill(id);
+  await waitFor(() => exited);
+});
+
+test("TerminalService falls back to pipes when PTY is unavailable", async () => {
+  const failingPty = new PtyManager(async () => {
+    throw new Error("native module missing");
+  });
+  assert.equal(await failingPty.available(), false);
+  const service = new TerminalService(new SessionManager(), failingPty);
+  const root = await mkdtemp(path.join(tmpdir(), "touwa-phase3-term-fb-"));
+  let received = "";
+  let exited = false;
+  const { id, mode } = await service.start(root, {
+    onData: (event) => {
+      received += event.text;
+    },
+    onExit: () => {
+      exited = true;
+    },
+  });
+  assert.equal(mode, "pipe");
+  service.write(id, "echo fallback-ok\n");
+  await waitFor(() => received.includes("fallback-ok"));
   service.kill(id);
   await waitFor(() => exited);
 });

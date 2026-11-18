@@ -12,7 +12,7 @@ Touwa Editor は、Electron + React + TypeScript + Monaco Editor で構築する
 - Git 連携（Source Control パネル: ステータス表示、ステージング、コミット、フェッチ／プル／プッシュ、Phase 3）
 - 型チェック（Problems パネル: ワークスペースの tsc で診断し、クリックで該当位置へ移動、Phase 3）
 - タスク実行（Tasks パネル: `.touwa/tasks.json` のタスクを手動実行、Phase 3）
-- ターミナル（Terminal パネル: シェルのコンソール、パイプ接続、Phase 3）
+- ターミナル（Terminal パネル: PTY 接続のシェルコンソール。node-pty を使えない環境ではパイプ接続に自動フォールバック、Phase 3）
 - 言語サーバー連携（同梱の typescript-language-server が開いている TS/JS ファイルを常時チェックし Problems パネルに表示。補完・Hover・Signature Help もサーバーから提供、Phase 3）
 - Node.js デバッガ（ブレークポイント、ステップ実行、コールスタックと変数表示。対象は .js / .mjs / .cjs、Phase 3）
 - Renderer / Preload / Main の責務分離

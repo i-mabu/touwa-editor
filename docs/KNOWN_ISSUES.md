@@ -10,7 +10,7 @@
 | Replace         | 置換直前に外部変更があったファイルはスキップされる                                                                                                                                                                                                                                                                                                | スキップされたファイルを確認してから再実行する                            |
 | Save            | 永続 Undo 未対応                                                                                                                                                                                                                                                                                                                                  | 保存前に外部変更を確認                                                    |
 | Developer tools | Git はステータス／ログ表示、ステージング／コミット、フェッチ／プル（FF のみ）／プッシュ対応。診断は tsc の手動再チェックに加え、開いている TS/JS ファイルへの言語サーバー常駐診断（LSP）に対応。LSP は補完・Hover・Signature Help も提供しますが（TS/JS では Monaco 標準の同機能を無効化）、ワークスペースを切り替えると旧ワークスペースの言語サーバープロセスがアプリ終了まで残ります。
-デバッガは Node.js のみ対応で、対象は .js / .mjs / .cjs ファイルです（TypeScript の直接デバッグや外部 DAP アダプタには未対応）。実行には Node.js のインストールが必要で、セッションは同時に1つだけです。Tasks は実行のみ（停止ボタンなし、120秒タイムアウト）。Terminal はパイプ接続（PTY ではない）ため TTY が必要な全画面プログラムは動作しない。Debugger、Extensions 未実装 | Roadmap の Phase 3 / 4 を参照                                             |
+デバッガは Node.js のみ対応で、対象は .js / .mjs / .cjs ファイルです（TypeScript の直接デバッグや外部 DAP アダプタには未対応）。実行には Node.js のインストールが必要で、セッションは同時に1つだけです。Tasks は実行のみ（停止ボタンなし、120秒タイムアウト）。Terminal は PTY 接続（node-pty を読み込めない環境ではパイプ接続にフォールバックし、その場合は TTY が必要な対話処理が動作しない）。全画面 TUI の描画には未対応。Extensions 未実装 | Roadmap の Phase 3 / 4 を参照                                             |
 
 ## Resolved in Phase 2
 

@@ -246,7 +246,7 @@ const api = {
       ipcRenderer.invoke("tasks:run", label),
   },
   terminal: {
-    start: (): Promise<{ id: string; shell: string }> =>
+    start: (): Promise<{ id: string; shell: string; mode: "pty" | "pipe" }> =>
       ipcRenderer.invoke("terminal:start"),
     write: (id: string, data: string): Promise<boolean> =>
       ipcRenderer.invoke("terminal:write", id, data),

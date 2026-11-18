@@ -145,7 +145,7 @@ const saved = await window.touwa.file.write(
 
 ワークスペースを cwd としてシェル（Windows は PowerShell、なければ cmd／その他は $SHELL、なければ sh）を常駐セッションとして起動します。セッションは開始したウィンドウが所有し、出力はそのウィンドウにだけ `terminal:data` イベント（`{id, stream, text}`）で、終了は `terminal:exit` イベント（`{id, exitCode, signal}`）で届きます。他ウィンドウのセッションへの書き込み・終了は拒否し、ウィンドウ破棄時とアプリ終了時にセッションを終了します。
 
-これはパイプ接続のコンソールであり、PTY ではありません。TTY を必要とする全画面プログラムや生キー入力を読むプロンプトは正しく動作しません（制限は KNOWN_ISSUES と ROADMAP に明記）。
+セッションは node-pty による PTY で起動し、結果の `mode` は `"pty"` です。node-pty を読み込めない環境ではパイプ接続にフォールバックし、`mode` は `"pipe"` になります（その場合、TTY を必要とする全画面プログラムや生キー入力を読むプロンプトは正しく動作しません）。パネルはスクロール型コンソールのため、全画面 TUI の描画にはどちらのモードでも対応しません（制限は KNOWN_ISSUES と ROADMAP に明記）。
 
 ## Language Server API（Phase 3）
 
