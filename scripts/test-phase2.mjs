@@ -259,10 +259,14 @@ test("watcher reports subdirectory changes with their full relative path", async
   const events = [];
   const watcher = createWorkspaceWatcher(root, (change) => events.push(change));
   try {
-    await appendFile(path.join(root, "src", "a.ts"), "// external\n");
-    // Debounce is 250 ms; poll briefly instead of sleeping a fixed time.
-    for (let i = 0; i < 50 && events.length === 0; i += 1) {
-      await new Promise((resolve) => setTimeout(resolve, 100));
+    // A change made before the OS watcher is fully armed can be missed
+    // (seen on Windows CI), so keep appending until an event lands
+    // instead of relying on a single write. Debounce is 250 ms.
+    for (let attempt = 0; attempt < 20 && events.length === 0; attempt += 1) {
+      await appendFile(path.join(root, "src", "a.ts"), "// external\n");
+      for (let i = 0; i < 10 && events.length === 0; i += 1) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
     }
   } finally {
     watcher.close();
