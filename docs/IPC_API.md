@@ -171,6 +171,12 @@ Node.js ファイル（.js / .mjs / .cjs）を `node --inspect-brk` で起動し
 
 ブレークポイント集合の置き換え（実行中は即時反映、行は 1–1,000,000 の整数、最大500件）、停止中フレームのスコープ変数（グローバルスコープを除く、最大100件）、オブジェクト変数の展開です。変数の `variablesReference` は停止ごとに再発行され、再開すると無効になります。
 
+## Extensions API（Phase 4）
+
+### `extensions.list()`
+
+ユーザー拡張フォルダ（アプリデータ内の `extensions`）と、ワークスペースが開いている場合は `.touwa/extensions` を走査し、各フォルダの `package.json` マニフェストを Main で検証して返します。`engines.touwa` の範囲が実行中バージョンに合わない拡張は `compatible: false`、未知の capabilities は `unknownCapabilities` に分離されます。不正なマニフェストは `errors` に入り、他の拡張の読み込みは止まりません。拡張コードの実行は行いません（書式は `docs/EXTENSIONS.md`）。
+
 ## Error policy
 
 Renderer にはユーザーが対処できるメッセージを返し、内部パスや秘密情報を不要に露出させません。Main では原因を開発者向けログに記録しますが、token、password、環境変数の値は記録しません。

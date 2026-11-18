@@ -51,9 +51,13 @@ Language Server、Completion、Hover、Signature Help、Diagnostics、Git、Inte
 
 ## Phase 4 — Extensibility
 
-**Status: ⏳ 計画中**
+**Status: ⏳ 一部実装（拡張の検出・マニフェスト検証まで）**
 
 Settings、Themes、Extension Host、Extension manifest、capability-based permissions、API versioning を追加します。Extension に Main の無制限権限を与えず、プロセスと権限を分離します。
+
+- Extension manifest 第一弾: ユーザー拡張フォルダとワークスペースの `.touwa/extensions` を走査し、`package.json` マニフェストを検証して Extensions パネル（Ctrl+Shift+X）に一覧表示します（`src/main/extensions/extensions-service.ts`）。`engines.touwa` の範囲チェック（fail closed）、contributes.commands の抽出、capabilities の許可リスト照合（未知の権限は警告として分離）までを含みます。拡張コードの実行はまだ行いません。書式は `docs/EXTENSIONS.md`。
+
+未実装: Settings、Themes、Extension Host（拡張の実行）、API versioning。
 
 ## Phase 5 — Quality
 

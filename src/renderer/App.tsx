@@ -14,6 +14,7 @@ import ProblemsPanel from "./components/ProblemsPanel";
 import TasksPanel from "./components/TasksPanel";
 import TerminalPanel from "./components/TerminalPanel";
 import DebugPanel from "./components/DebugPanel";
+import ExtensionsPanel from "./components/ExtensionsPanel";
 import type {
   DebugBreakpoint,
   Diagnostic,
@@ -53,7 +54,8 @@ type Pane =
   | "problems"
   | "tasks"
   | "terminal"
-  | "debug";
+  | "debug"
+  | "extensions";
 
 export default function App(): JSX.Element {
   const [root, setRoot] = useState("No workspace");
@@ -893,6 +895,15 @@ export default function App(): JSX.Element {
       },
     },
     {
+      id: "show-extensions",
+      title: "View: Show Extensions",
+      shortcut: "Ctrl+Shift+X",
+      run: () => {
+        setSidebarVisible(true);
+        setPane("extensions");
+      },
+    },
+    {
       id: "reload",
       title: "File: Reload from Disk",
       shortcut: "",
@@ -1006,6 +1017,10 @@ export default function App(): JSX.Element {
         e.preventDefault();
         setSidebarVisible(true);
         setPane("debug");
+      } else if (key === "x" && e.shiftKey) {
+        e.preventDefault();
+        setSidebarVisible(true);
+        setPane("extensions");
       } else if (key === "`") {
         e.preventDefault();
         setSidebarVisible(true);
@@ -1112,6 +1127,16 @@ export default function App(): JSX.Element {
             }}
           >
             DB
+          </div>
+          <div
+            className={`activity-icon ${sidebarVisible && pane === "extensions" ? "active" : ""}`}
+            title="Extensions (Ctrl+Shift+X)"
+            onClick={() => {
+              setSidebarVisible(true);
+              setPane("extensions");
+            }}
+          >
+            EX
           </div>
         </nav>
         {sidebarVisible &&
@@ -1220,6 +1245,10 @@ export default function App(): JSX.Element {
               onKill={(id) => window.touwa.terminal.kill(id)}
               onData={(callback) => window.touwa.terminal.onData(callback)}
               onExit={(callback) => window.touwa.terminal.onExit(callback)}
+            />
+          ) : pane === "extensions" ? (
+            <ExtensionsPanel
+              onListExtensions={() => window.touwa.extensions.list()}
             />
           ) : (
             <DebugPanel

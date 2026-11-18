@@ -1,0 +1,37 @@
+import { readFile } from "node:fs/promises";
+
+const required = [
+  [
+    "src/main/extensions/extensions-service.ts",
+    ["scanExtensions", "parseExtensionManifest", "KNOWN_CAPABILITIES"],
+  ],
+  [
+    "src/main/ipc/register-ipc.ts",
+    ["extensions:list"],
+  ],
+  [
+    "src/preload/preload.ts",
+    ["extensions"],
+  ],
+  [
+    "src/renderer/components/ExtensionsPanel.tsx",
+    ["ExtensionsPanel"],
+  ],
+  [
+    "src/renderer/App.tsx",
+    ["extensions"],
+  ],
+];
+
+let failed = false;
+for (const [file, needles] of required) {
+  const text = await readFile(file, "utf8");
+  for (const needle of needles) {
+    if (!text.includes(needle)) {
+      console.error(`verify:phase4: ${file} is missing: ${needle}`);
+      failed = true;
+    }
+  }
+}
+if (failed) process.exit(1);
+console.log("verify:phase4 passed");

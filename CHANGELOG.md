@@ -19,6 +19,7 @@
 - Node.js デバッガを追加しました。対象ファイル（.js / .mjs / .cjs）を `node --inspect-brk` で起動し、V8 Inspector（CDP）を Main が DAP 方式の API に変換します。Debug パネル（Ctrl+Shift+D）から開始／停止／再開／一時停止／ステップ実行、コールスタックと変数（オブジェクト展開可）を表示します。ブレークポイントはエディタのガターマージンのクリックで切り替え（実行中の変更も即時反映、削除・リネームに追従）、停止行はエディタにハイライトします。Phase 3 テストは計28件（全体49件）になりました。
 - ターミナルを PTY 化しました。セッションは node-pty（`src/main/process/pty-manager.ts`）による疑似端末で起動し、対話プロンプト、エコーなし入力、Ctrl+C、isatty 判定が機能します。node-pty を読み込めない環境ではパイプ接続に自動フォールバックし、パネルに接続モードを表示します（全画面 TUI の描画は未対応）。Phase 3 テストは計31件（全体52件）になりました。
 - 外部 DAP アダプタに対応しました。`.touwa/debug.json` に Debug Adapter Protocol サーバーを登録すると、その拡張子のファイルを外部アダプタでデバッグできます（例: debugpy で Python）。対象ファイルの拡張子で内蔵 Node.js デバッガと自動で切り替わり、ブレークポイント／ステップ実行／コールスタック／変数表示は同じ Debug パネルで操作します。起動引数は program / cwd / stopOnEntry の汎用セットのみです。書式は `docs/DEBUGGING.md`。これで Phase 3 は完了です。Phase 3 テストは計33件（全体54件）になりました。
+- Phase 4 第一弾として、拡張機能の検出とマニフェスト検証を追加しました。ユーザー拡張フォルダとワークスペースの `.touwa/extensions` を走査し、`package.json` を検証（engines.touwa の範囲チェック、contributes.commands の抽出、capabilities の許可リスト照合）して Extensions パネル（Ctrl+Shift+X）に一覧表示します。拡張コードの実行はまだ行いません。書式は `docs/EXTENSIONS.md`。Phase 4 テストは7件（全体61件）になりました。
 
 - 複数タブと Editor Groups（最大2グループ、Split Right／Close Group）
 - 再帰 Explorer（ディレクトリの遅延読み込み、ディレクトリ優先ソート）

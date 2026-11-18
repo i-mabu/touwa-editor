@@ -1,4 +1,6 @@
+import path from "node:path";
 import {
+  app,
   dialog,
   ipcMain,
   type IpcMainInvokeEvent,
@@ -47,6 +49,8 @@ import {
   loadDebugConfig,
 } from "../debug/debug-config";
 import { lspService } from "../lsp/lsp-service";
+import { scanExtensions } from "../extensions/extensions-service";
+import type { ExtensionScope } from "../extensions/extensions-service";
 
 const workspaceRoots = new Map<number, string>();
 const watchers = new Map<number, WorkspaceWatcher>();
@@ -266,6 +270,22 @@ export function registerIpc(): void {
       throw new Error("Invalid task label.");
     }
     return runTask(requireRoot(event.sender.id), label);
+  });
+  ipcMain.handle("extensions:list", async (event) => {
+    const locations: { scope: ExtensionScope; dir: string }[] = [
+      {
+        scope: "user",
+        dir: path.join(app.getPath("userData"), "extensions"),
+      },
+    ];
+    const root = workspaceRoots.get(event.sender.id);
+    if (root) {
+      locations.push({
+        scope: "workspace",
+        dir: path.join(root, ".touwa", "extensions"),
+      });
+    }
+    return scanExtensions(locations, app.getVersion());
   });
   // Terminal sessions belong to the window that started them: output
   // events go only to that window, only that window may write to or

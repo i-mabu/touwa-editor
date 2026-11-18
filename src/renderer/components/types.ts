@@ -75,6 +75,28 @@ export type TasksListResult = {
   error: string | null;
 };
 
+export type ExtensionInfo = {
+  id: string;
+  name: string;
+  displayName: string;
+  version: string;
+  description: string;
+  publisher: string;
+  scope: "user" | "workspace";
+  folder: string;
+  main: string | null;
+  activationEvents: string[];
+  commands: { command: string; title: string }[];
+  capabilities: string[];
+  unknownCapabilities: string[];
+  compatible: boolean;
+};
+
+export type ExtensionsListResult = {
+  extensions: ExtensionInfo[];
+  errors: string[];
+};
+
 export type TaskRunResult = {
   label: string;
   exitCode: number | null;

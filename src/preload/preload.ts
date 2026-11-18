@@ -90,6 +90,28 @@ type TasksListResult = {
   error: string | null;
 };
 
+type ExtensionInfo = {
+  id: string;
+  name: string;
+  displayName: string;
+  version: string;
+  description: string;
+  publisher: string;
+  scope: "user" | "workspace";
+  folder: string;
+  main: string | null;
+  activationEvents: string[];
+  commands: { command: string; title: string }[];
+  capabilities: string[];
+  unknownCapabilities: string[];
+  compatible: boolean;
+};
+
+type ExtensionsListResult = {
+  extensions: ExtensionInfo[];
+  errors: string[];
+};
+
 type TaskRunResult = {
   label: string;
   exitCode: number | null;
@@ -244,6 +266,10 @@ const api = {
     list: (): Promise<TasksListResult> => ipcRenderer.invoke("tasks:list"),
     run: (label: string): Promise<TaskRunResult> =>
       ipcRenderer.invoke("tasks:run", label),
+  },
+  extensions: {
+    list: (): Promise<ExtensionsListResult> =>
+      ipcRenderer.invoke("extensions:list"),
   },
   terminal: {
     start: (): Promise<{ id: string; shell: string; mode: "pty" | "pipe" }> =>
@@ -406,4 +432,6 @@ export type {
   DebugVariable,
   DebugStateEvent,
   DebugOutputEvent,
+  ExtensionInfo,
+  ExtensionsListResult,
 };
