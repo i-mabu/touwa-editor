@@ -20,6 +20,8 @@ jobs:
       - run: npm run build
       - run: npm run package
       - shell: pwsh
-        run: Get-ChildItem release -Recurse | Get-FileHash -Algorithm SHA256 | Out-File release/SHA256SUMS.txt
+        run: |
+          $hashes = Get-ChildItem release -Recurse -File | Get-FileHash -Algorithm SHA256
+          $hashes | Out-File release/SHA256SUMS.txt
       - uses: softprops/action-gh-release@v2
         with: { files: "release/**", generate_release_notes: true }
