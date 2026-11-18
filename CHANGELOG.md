@@ -20,6 +20,7 @@
 - ターミナルを PTY 化しました。セッションは node-pty（`src/main/process/pty-manager.ts`）による疑似端末で起動し、対話プロンプト、エコーなし入力、Ctrl+C、isatty 判定が機能します。node-pty を読み込めない環境ではパイプ接続に自動フォールバックし、パネルに接続モードを表示します（全画面 TUI の描画は未対応）。Phase 3 テストは計31件（全体52件）になりました。
 - 外部 DAP アダプタに対応しました。`.touwa/debug.json` に Debug Adapter Protocol サーバーを登録すると、その拡張子のファイルを外部アダプタでデバッグできます（例: debugpy で Python）。対象ファイルの拡張子で内蔵 Node.js デバッガと自動で切り替わり、ブレークポイント／ステップ実行／コールスタック／変数表示は同じ Debug パネルで操作します。起動引数は program / cwd / stopOnEntry の汎用セットのみです。書式は `docs/DEBUGGING.md`。これで Phase 3 は完了です。Phase 3 テストは計33件（全体54件）になりました。
 - Phase 4 第一弾として、拡張機能の検出とマニフェスト検証を追加しました。ユーザー拡張フォルダとワークスペースの `.touwa/extensions` を走査し、`package.json` を検証（engines.touwa の範囲チェック、contributes.commands の抽出、capabilities の許可リスト照合）して Extensions パネル（Ctrl+Shift+X）に一覧表示します。拡張コードの実行はまだ行いません。書式は `docs/EXTENSIONS.md`。Phase 4 テストは7件（全体61件）になりました。
+- Settings 基盤を追加しました。スキーマ宣言に基づく3層設定（既定 < ユーザー設定 < ワークスペース `.touwa/settings.json`）で、各層は全項目を検証し、不正な層は理由付きで無効化されます。セキュリティ感応キー（`scope: "user"`）はワークスペース層から設定できません。Settings パネル（Ctrl+,）でユーザー設定を編集でき、Monaco の fontSize / fontFamily / tabSize / wordWrap / minimap へ即時反映されます。書式は `docs/SETTINGS.md`。Phase 4 テストは計12件（全体66件）になりました。
 
 - 複数タブと Editor Groups（最大2グループ、Split Right／Close Group）
 - 再帰 Explorer（ディレクトリの遅延読み込み、ディレクトリ優先ソート）

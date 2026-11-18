@@ -1,0 +1,31 @@
+# 設定（Settings）
+
+設定は3層で合成されます（キー単位、後勝ち）。
+
+| 層 | 場所 |
+|---|---|
+| 既定値 | コード内スキーマ（`src/main/settings/settings-schema.ts`） |
+| ユーザー設定 | アプリの userData フォルダ内の `settings.json` |
+| ワークスペース設定 | `<ワークスペース>/.touwa/settings.json` |
+
+- 各層は Main 側で全項目を検証します。不正な層（JSON でない、未知キー、型不一致、範囲外）はその層ごと無効になり、理由が Settings パネルに表示されます。他の層はそのまま生き残ります。
+- スキーマで `scope: "user"` とされたキーは、ワークスペース層からは設定できません（悪意あるリポジトリがセキュリティ感応設定を緩められないようにするため、エラーにはせず除外されます）。
+- キャッシュは持たず、取得のたびに読み直します。
+
+## 設定キー（v1）
+
+| キー | 型 | 既定 | 備考 |
+|---|---|---|---|
+| `editor.fontSize` | number（8–72） | 14 | |
+| `editor.fontFamily` | string（≤200字） | `""`（Monaco 既定） | |
+| `editor.tabSize` | number（1–8） | 2 | |
+| `editor.wordWrap` | enum `off`/`on` | `off` | |
+| `editor.minimap.enabled` | boolean | false | |
+| `workbench.colorTheme` | string | `touwa-dark` | ユーザー層のみ。テーマ切り替えの実効化は Themes 増分で対応 |
+
+宣言するのは実装が実際に消費するキーだけです。新しい設定は、それを使う機能と一緒にスキーマへ追加します。
+
+## UI
+
+- Settings パネル: アクティビティバーの ST、または **Ctrl+,** / コマンドパレットの「Preferences: Open Settings」
+- パネルからの変更はユーザー設定へ保存され、エディタへ即時反映されます。ワークスペース設定があるキーはそちらが優先されるため、パネルの値と実効値が異なる場合があります（パネルは実効値を表示します）。

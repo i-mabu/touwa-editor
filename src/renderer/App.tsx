@@ -15,11 +15,13 @@ import TasksPanel from "./components/TasksPanel";
 import TerminalPanel from "./components/TerminalPanel";
 import DebugPanel from "./components/DebugPanel";
 import ExtensionsPanel from "./components/ExtensionsPanel";
+import SettingsPanel from "./components/SettingsPanel";
 import type {
   DebugBreakpoint,
   Diagnostic,
   FileEntry,
   SearchMatch,
+  SettingValue,
 } from "./components/types";
 import {
   isLspLanguagePath,
@@ -55,10 +57,33 @@ type Pane =
   | "tasks"
   | "terminal"
   | "debug"
-  | "extensions";
+  | "extensions"
+  | "settings";
 
 export default function App(): JSX.Element {
   const [root, setRoot] = useState("No workspace");
+  const [settingValues, setSettingValues] = useState<
+    Record<string, SettingValue>
+  >({});
+  useEffect(() => {
+    let cancelled = false;
+    void window.touwa.settings
+      .get()
+      .then((result) => {
+        if (!cancelled) setSettingValues(result.effective);
+      })
+      .catch(() => {
+        // Settings fall back to the schema defaults in Main; a
+        // failed read simply keeps the renderer's own defaults.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [root]);
+  const numSetting = (key: string, fallback: number): number => {
+    const value = settingValues[key];
+    return typeof value === "number" ? value : fallback;
+  };
   const [entries, setEntries] = useState<FileEntry[]>([]);
   const [groups, setGroups] = useState<GroupsState>(emptyGroups());
   const [pane, setPane] = useState<Pane>("explorer");
@@ -904,6 +929,15 @@ export default function App(): JSX.Element {
       },
     },
     {
+      id: "show-settings",
+      title: "Preferences: Open Settings",
+      shortcut: "Ctrl+,",
+      run: () => {
+        setSidebarVisible(true);
+        setPane("settings");
+      },
+    },
+    {
       id: "reload",
       title: "File: Reload from Disk",
       shortcut: "",
@@ -1021,6 +1055,10 @@ export default function App(): JSX.Element {
         e.preventDefault();
         setSidebarVisible(true);
         setPane("extensions");
+      } else if (key === ",") {
+        e.preventDefault();
+        setSidebarVisible(true);
+        setPane("settings");
       } else if (key === "`") {
         e.preventDefault();
         setSidebarVisible(true);
@@ -1138,6 +1176,16 @@ export default function App(): JSX.Element {
           >
             EX
           </div>
+          <div
+            className={`activity-icon ${sidebarVisible && pane === "settings" ? "active" : ""}`}
+            title="Settings (Ctrl+,)"
+            onClick={() => {
+              setSidebarVisible(true);
+              setPane("settings");
+            }}
+          >
+            ST
+          </div>
         </nav>
         {sidebarVisible &&
           (pane === "explorer" ? (
@@ -1249,6 +1297,15 @@ export default function App(): JSX.Element {
           ) : pane === "extensions" ? (
             <ExtensionsPanel
               onListExtensions={() => window.touwa.extensions.list()}
+            />
+          ) : pane === "settings" ? (
+            <SettingsPanel
+              onGetSettings={() => window.touwa.settings.get()}
+              onSetSetting={async (key, value) => {
+                const result = await window.touwa.settings.set(key, value);
+                setSettingValues(result.effective);
+                return result;
+              }}
             />
           ) : (
             <DebugPanel
@@ -1439,12 +1496,24 @@ export default function App(): JSX.Element {
                         }
                       }}
                       options={{
-                        fontSize: 14,
-                        minimap: { enabled: false },
+                        fontSize: numSetting("editor.fontSize", 14),
+                        fontFamily:
+                          typeof settingValues["editor.fontFamily"] ===
+                            "string" &&
+                          settingValues["editor.fontFamily"] !== ""
+                            ? (settingValues["editor.fontFamily"] as string)
+                            : undefined,
+                        minimap: {
+                          enabled:
+                            settingValues["editor.minimap.enabled"] === true,
+                        },
                         glyphMargin: true,
                         automaticLayout: true,
-                        tabSize: 2,
-                        wordWrap: "off",
+                        tabSize: numSetting("editor.tabSize", 2),
+                        wordWrap:
+                          settingValues["editor.wordWrap"] === "on"
+                            ? "on"
+                            : "off",
                         multiCursorModifier: "ctrlCmd",
                         multiCursorMergeOverlapping: true,
                         find: {

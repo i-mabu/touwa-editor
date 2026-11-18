@@ -21,6 +21,30 @@ const required = [
     "src/renderer/App.tsx",
     ["extensions"],
   ],
+  [
+    "src/main/settings/settings-schema.ts",
+    ["SETTING_DEFS", "validateSettingValue"],
+  ],
+  [
+    "src/main/settings/settings-service.ts",
+    ["getEffectiveSettings", "setUserSetting", "parseSettingsFile"],
+  ],
+  [
+    "src/main/ipc/register-ipc.ts",
+    ["settings:get", "settings:set"],
+  ],
+  [
+    "src/preload/preload.ts",
+    ["settings"],
+  ],
+  [
+    "src/renderer/components/SettingsPanel.tsx",
+    ["SettingsPanel"],
+  ],
+  [
+    "src/renderer/App.tsx",
+    ["settings"],
+  ],
 ];
 
 let failed = false;

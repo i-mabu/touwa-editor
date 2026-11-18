@@ -51,6 +51,10 @@ import {
 import { lspService } from "../lsp/lsp-service";
 import { scanExtensions } from "../extensions/extensions-service";
 import type { ExtensionScope } from "../extensions/extensions-service";
+import {
+  getEffectiveSettings,
+  setUserSetting,
+} from "../settings/settings-service";
 
 const workspaceRoots = new Map<number, string>();
 const watchers = new Map<number, WorkspaceWatcher>();
@@ -287,6 +291,35 @@ export function registerIpc(): void {
     }
     return scanExtensions(locations, app.getVersion());
   });
+  ipcMain.handle("settings:get", async (event) => {
+    const root = workspaceRoots.get(event.sender.id) ?? null;
+    return getEffectiveSettings(
+      path.join(app.getPath("userData"), "settings.json"),
+      root,
+    );
+  });
+  ipcMain.handle(
+    "settings:set",
+    async (event, key: unknown, value: unknown) => {
+      if (typeof key !== "string" || key.length === 0) {
+        throw new Error("Invalid setting key.");
+      }
+      if (
+        typeof value !== "boolean" &&
+        typeof value !== "number" &&
+        typeof value !== "string"
+      ) {
+        throw new Error("Invalid setting value.");
+      }
+      const root = workspaceRoots.get(event.sender.id) ?? null;
+      return setUserSetting(
+        path.join(app.getPath("userData"), "settings.json"),
+        root,
+        key,
+        value,
+      );
+    },
+  );
   // Terminal sessions belong to the window that started them: output
   // events go only to that window, only that window may write to or
   // kill them, and they are killed when the window is destroyed.

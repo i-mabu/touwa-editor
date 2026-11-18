@@ -177,6 +177,12 @@ Node.js ファイル（.js / .mjs / .cjs）を `node --inspect-brk` で起動し
 
 ユーザー拡張フォルダ（アプリデータ内の `extensions`）と、ワークスペースが開いている場合は `.touwa/extensions` を走査し、各フォルダの `package.json` マニフェストを Main で検証して返します。`engines.touwa` の範囲が実行中バージョンに合わない拡張は `compatible: false`、未知の capabilities は `unknownCapabilities` に分離されます。不正なマニフェストは `errors` に入り、他の拡張の読み込みは止まりません。拡張コードの実行は行いません（書式は `docs/EXTENSIONS.md`）。
 
+## Settings API（Phase 4）
+
+### `settings.get()` / `settings.set(key, value)`
+
+`get` は `{ effective, errors: { user, workspace } }` を返します。層はスキーマ既定値 < ユーザー設定（アプリデータ内の `settings.json`）< ワークスペース `.touwa/settings.json` で、取得のたびに読み直します。各層は全項目検証され、不正な層は理由を `errors` に残して丸ごと無効になります。スキーマで `scope: "user"` のキーはワークスペース層から除外されます。`set` はキーと値を Main で検証してユーザー層へだけ書き込み（テンポラリ＋rename の原子的書き込み）、新しい実効設定を返します。壊れた既存のユーザー設定ファイルは上書きせずエラーにします（書式は `docs/SETTINGS.md`）。
+
 ## Error policy
 
 Renderer にはユーザーが対処できるメッセージを返し、内部パスや秘密情報を不要に露出させません。Main では原因を開発者向けログに記録しますが、token、password、環境変数の値は記録しません。

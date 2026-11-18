@@ -97,6 +97,13 @@ export type ExtensionsListResult = {
   errors: string[];
 };
 
+export type SettingValue = boolean | number | string;
+
+export type SettingsLoadResult = {
+  effective: Record<string, SettingValue>;
+  errors: { user: string | null; workspace: string | null };
+};
+
 export type TaskRunResult = {
   label: string;
   exitCode: number | null;

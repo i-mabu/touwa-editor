@@ -16,6 +16,7 @@ Touwa Editor は、Electron + React + TypeScript + Monaco Editor で構築する
 - 言語サーバー連携（同梱の typescript-language-server が開いている TS/JS ファイルを常時チェックし Problems パネルに表示。補完・Hover・Signature Help もサーバーから提供、Phase 3）
 - デバッガ（ブレークポイント、ステップ実行、コールスタックと変数表示。Node.js は内蔵対応、その他の言語は .touwa/debug.json で外部 DAP アダプタを登録、Phase 3）
 - 拡張機能の検出（ユーザー拡張フォルダと .touwa/extensions のマニフェストを検証し、Extensions パネルに一覧表示。実行は未対応、Phase 4）
+- 設定（既定／ユーザー／ワークスペースの3層を Settings パネル（Ctrl+,）で編集し、エディタへ即時反映。Phase 4）
 - Renderer / Preload / Main の責務分離
 - 型付き IPC と Main 側の入力検証
 - `path.resolve` / `realpath` による Workspace 境界チェック

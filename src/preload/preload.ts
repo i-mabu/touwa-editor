@@ -112,6 +112,13 @@ type ExtensionsListResult = {
   errors: string[];
 };
 
+type SettingValue = boolean | number | string;
+
+type SettingsLoadResult = {
+  effective: Record<string, SettingValue>;
+  errors: { user: string | null; workspace: string | null };
+};
+
 type TaskRunResult = {
   label: string;
   exitCode: number | null;
@@ -270,6 +277,15 @@ const api = {
   extensions: {
     list: (): Promise<ExtensionsListResult> =>
       ipcRenderer.invoke("extensions:list"),
+  },
+  settings: {
+    get: (): Promise<SettingsLoadResult> =>
+      ipcRenderer.invoke("settings:get"),
+    set: (
+      key: string,
+      value: SettingValue,
+    ): Promise<SettingsLoadResult> =>
+      ipcRenderer.invoke("settings:set", key, value),
   },
   terminal: {
     start: (): Promise<{ id: string; shell: string; mode: "pty" | "pipe" }> =>
@@ -434,4 +450,6 @@ export type {
   DebugOutputEvent,
   ExtensionInfo,
   ExtensionsListResult,
+  SettingValue,
+  SettingsLoadResult,
 };

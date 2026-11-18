@@ -1,8 +1,9 @@
-// Phase 4 runtime tests: extension manifest discovery and validation.
+// Phase 4 runtime tests: extension manifest discovery and validation,
+// plus the layered settings schema and service.
 // Run with: npm test   (Node >= 22.18 runs the TypeScript sources directly.)
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, writeFile, mkdir } from "node:fs/promises";
+import { mkdtemp, readFile, writeFile, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import {
@@ -10,6 +11,16 @@ import {
   parseExtensionManifest,
   scanExtensions,
 } from "../src/main/extensions/extensions-service.ts";
+import {
+  settingDef,
+  validateSettingValue,
+} from "../src/main/settings/settings-schema.ts";
+import {
+  getEffectiveSettings,
+  mergeSettings,
+  parseSettingsFile,
+  setUserSetting,
+} from "../src/main/settings/settings-service.ts";
 
 test("parseExtensionManifest parses a full manifest", () => {
   const info = parseExtensionManifest(
@@ -232,4 +243,152 @@ test("scanExtensions returns empty for no locations", async () => {
     extensions: [],
     errors: [],
   });
+});
+
+test("validateSettingValue accepts valid values and rejects the rest", () => {
+  const fontSize = settingDef("editor.fontSize");
+  const wordWrap = settingDef("editor.wordWrap");
+  const minimap = settingDef("editor.minimap.enabled");
+  const fontFamily = settingDef("editor.fontFamily");
+  // Valid values come back unchanged, range boundaries included.
+  assert.equal(validateSettingValue(fontSize, 20), 20);
+  assert.equal(validateSettingValue(fontSize, 8), 8);
+  assert.equal(validateSettingValue(fontSize, 72), 72);
+  assert.equal(validateSettingValue(wordWrap, "on"), "on");
+  assert.equal(validateSettingValue(minimap, true), true);
+  assert.equal(validateSettingValue(fontFamily, "monospace"), "monospace");
+  // Type mismatches throw.
+  assert.throws(() => validateSettingValue(fontSize, "20"), /数値/);
+  assert.throws(() => validateSettingValue(minimap, 1), /真偽値/);
+  assert.throws(() => validateSettingValue(fontFamily, 12), /文字列/);
+  // Numbers outside the declared range throw (fontSize is 8–72).
+  assert.throws(() => validateSettingValue(fontSize, 7), /範囲/);
+  assert.throws(() => validateSettingValue(fontSize, 73), /範囲/);
+  // Values outside the enum throw.
+  assert.throws(() => validateSettingValue(wordWrap, "sometimes"), /いずれか/);
+});
+
+test("parseSettingsFile validates whole layers and filters by scope", () => {
+  // Unknown keys are rejected outright.
+  assert.throws(
+    () => parseSettingsFile(JSON.stringify({ "editor.unknown": 1 }), "user"),
+    /未知の設定キー/,
+  );
+  // A type mismatch anywhere invalidates the whole layer: the
+  // parser throws instead of returning a partially-valid map.
+  assert.throws(
+    () =>
+      parseSettingsFile(
+        JSON.stringify({ "editor.fontSize": 20, "editor.tabSize": "wide" }),
+        "user",
+      ),
+    /数値/,
+  );
+  // workbench.colorTheme is scoped "user": in the workspace layer
+  // it is silently excluded (no error), in the user layer it is kept.
+  const text = JSON.stringify({
+    "workbench.colorTheme": "custom-theme",
+    "editor.fontSize": 18,
+  });
+  assert.deepEqual(parseSettingsFile(text, "workspace"), {
+    "editor.fontSize": 18,
+  });
+  assert.deepEqual(parseSettingsFile(text, "user"), {
+    "workbench.colorTheme": "custom-theme",
+    "editor.fontSize": 18,
+  });
+});
+
+test("mergeSettings overrides defaults per key", () => {
+  const merged = mergeSettings({ "editor.fontSize": 20 });
+  // Only fontSize changes; every other key keeps its schema default.
+  assert.equal(merged["editor.fontSize"], 20);
+  assert.equal(merged["editor.tabSize"], 2);
+  assert.equal(merged["editor.wordWrap"], "off");
+  assert.equal(merged["editor.minimap.enabled"], false);
+  assert.equal(merged["workbench.colorTheme"], "touwa-dark");
+  // Later layers win over earlier ones, per key.
+  const layered = mergeSettings(
+    { "editor.fontSize": 20, "editor.tabSize": 4 },
+    { "editor.fontSize": 22 },
+  );
+  assert.equal(layered["editor.fontSize"], 22);
+  assert.equal(layered["editor.tabSize"], 4);
+});
+
+test("getEffectiveSettings layers files with per-layer errors", async () => {
+  const base = await mkdtemp(path.join(tmpdir(), "touwa-phase4-settings-"));
+  const userPath = path.join(base, "user", "settings.json");
+  const workspaceRoot = path.join(base, "ws");
+  await mkdir(workspaceRoot, { recursive: true });
+
+  // No files at all: pure defaults, no errors on either layer.
+  const empty = await getEffectiveSettings(userPath, workspaceRoot);
+  assert.equal(empty.effective["editor.fontSize"], 14);
+  assert.equal(empty.effective["workbench.colorTheme"], "touwa-dark");
+  assert.deepEqual(empty.errors, { user: null, workspace: null });
+  // No workspace open: the workspace layer reports no error either.
+  const noWorkspace = await getEffectiveSettings(userPath, null);
+  assert.deepEqual(noWorkspace.errors, { user: null, workspace: null });
+
+  // A user settings file is reflected over the defaults.
+  await mkdir(path.dirname(userPath), { recursive: true });
+  await writeFile(
+    userPath,
+    JSON.stringify({ "editor.fontSize": 20, "editor.tabSize": 4 }),
+  );
+  const userOnly = await getEffectiveSettings(userPath, workspaceRoot);
+  assert.equal(userOnly.effective["editor.fontSize"], 20);
+  assert.equal(userOnly.effective["editor.tabSize"], 4);
+  assert.deepEqual(userOnly.errors, { user: null, workspace: null });
+
+  // The workspace layer wins over the user layer, per key.
+  await mkdir(path.join(workspaceRoot, ".touwa"), { recursive: true });
+  const workspaceFile = path.join(workspaceRoot, ".touwa", "settings.json");
+  await writeFile(workspaceFile, JSON.stringify({ "editor.fontSize": 24 }));
+  const layered = await getEffectiveSettings(userPath, workspaceRoot);
+  assert.equal(layered.effective["editor.fontSize"], 24);
+  assert.equal(layered.effective["editor.tabSize"], 4);
+
+  // A broken user file drops only that layer: its error is
+  // reported, the values fall back to defaults, and the workspace
+  // layer still applies.
+  await writeFile(userPath, "{broken json");
+  const broken = await getEffectiveSettings(userPath, workspaceRoot);
+  assert.equal(typeof broken.errors.user, "string");
+  assert.equal(broken.errors.workspace, null);
+  assert.equal(broken.effective["editor.fontSize"], 24);
+  assert.equal(broken.effective["editor.tabSize"], 2);
+});
+
+test("setUserSetting writes the user layer and reports effective values", async () => {
+  const base = await mkdtemp(path.join(tmpdir(), "touwa-phase4-set-"));
+  const userPath = path.join(base, "user", "settings.json");
+
+  // The file (and its parent directory) is created, and the new
+  // value shows up in the returned effective settings.
+  const result = await setUserSetting(userPath, null, "editor.fontSize", 22);
+  assert.equal(result.effective["editor.fontSize"], 22);
+  assert.deepEqual(result.errors, { user: null, workspace: null });
+  const written = JSON.parse(await readFile(userPath, "utf8"));
+  assert.deepEqual(written, { "editor.fontSize": 22 });
+
+  // A second write merges with the existing file content.
+  const again = await setUserSetting(userPath, null, "editor.wordWrap", "on");
+  assert.equal(again.effective["editor.fontSize"], 22);
+  assert.equal(again.effective["editor.wordWrap"], "on");
+
+  // Unknown keys are rejected before anything is written.
+  await assert.rejects(
+    () => setUserSetting(userPath, null, "editor.nope", 1),
+    /未知の設定キー/,
+  );
+
+  // A broken existing file is reported, never silently overwritten.
+  await writeFile(userPath, "{broken json");
+  await assert.rejects(
+    () => setUserSetting(userPath, null, "editor.fontSize", 16),
+    /現在のユーザー設定に問題があります/,
+  );
+  assert.equal(await readFile(userPath, "utf8"), "{broken json");
 });

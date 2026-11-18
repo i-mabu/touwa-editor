@@ -51,13 +51,15 @@ Language Server、Completion、Hover、Signature Help、Diagnostics、Git、Inte
 
 ## Phase 4 — Extensibility
 
-**Status: ⏳ 一部実装（拡張の検出・マニフェスト検証まで）**
+**Status: ⏳ 一部実装（拡張の検出・マニフェスト検証、Settings 基盤まで）**
 
 Settings、Themes、Extension Host、Extension manifest、capability-based permissions、API versioning を追加します。Extension に Main の無制限権限を与えず、プロセスと権限を分離します。
 
 - Extension manifest 第一弾: ユーザー拡張フォルダとワークスペースの `.touwa/extensions` を走査し、`package.json` マニフェストを検証して Extensions パネル（Ctrl+Shift+X）に一覧表示します（`src/main/extensions/extensions-service.ts`）。`engines.touwa` の範囲チェック（fail closed）、contributes.commands の抽出、capabilities の許可リスト照合（未知の権限は警告として分離）までを含みます。拡張コードの実行はまだ行いません。書式は `docs/EXTENSIONS.md`。
 
-未実装: Settings、Themes、Extension Host（拡張の実行）、API versioning。
+- Settings 基盤: スキーマ宣言表に基づく3層設定（既定 < ユーザー設定 < ワークスペース `.touwa/settings.json`）。各層は全項目を Main で検証し、不正な層は理由付きで丸ごと無効化、`scope: "user"` のキーはワークスペース層から設定できません。Settings パネル（Ctrl+,）でユーザー設定を編集でき、Monaco の fontSize / fontFamily / tabSize / wordWrap / minimap に即時反映されます（`src/main/settings/`、書式は `docs/SETTINGS.md`）。
+
+未実装: Themes（`workbench.colorTheme` の実効化を含む）、Extension Host（拡張の実行）、API versioning。
 
 ## Phase 5 — Quality
 
