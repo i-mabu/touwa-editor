@@ -10,6 +10,7 @@ import QuickOpen from "./components/QuickOpen";
 import SearchPanel from "./components/SearchPanel";
 import GitPanel from "./components/GitPanel";
 import ProblemsPanel from "./components/ProblemsPanel";
+import TasksPanel from "./components/TasksPanel";
 import type { FileEntry, SearchMatch } from "./components/types";
 import { languageForPath } from "./components/types";
 import {
@@ -33,7 +34,7 @@ import {
   type TabState,
 } from "./state/tabs";
 
-type Pane = "explorer" | "search" | "git" | "problems";
+type Pane = "explorer" | "search" | "git" | "problems" | "tasks";
 
 export default function App(): JSX.Element {
   const [root, setRoot] = useState("No workspace");
@@ -466,6 +467,14 @@ export default function App(): JSX.Element {
       },
     },
     {
+      id: "show-tasks",
+      title: "View: Show Tasks",
+      run: () => {
+        setSidebarVisible(true);
+        setPane("tasks");
+      },
+    },
+    {
       id: "reload",
       title: "File: Reload from Disk",
       shortcut: "",
@@ -648,6 +657,16 @@ export default function App(): JSX.Element {
           >
             PR
           </div>
+          <div
+            className={`activity-icon ${sidebarVisible && pane === "tasks" ? "active" : ""}`}
+            title="Tasks"
+            onClick={() => {
+              setSidebarVisible(true);
+              setPane("tasks");
+            }}
+          >
+            TK
+          </div>
         </nav>
         {sidebarVisible &&
           (pane === "explorer" ? (
@@ -729,7 +748,7 @@ export default function App(): JSX.Element {
                 void openFile(entry);
               }}
             />
-          ) : (
+          ) : pane === "problems" ? (
             <ProblemsPanel
               onRunDiagnostics={() => window.touwa.diagnostics.run()}
               onJumpTo={(relativePath, line, column) => {
@@ -740,6 +759,11 @@ export default function App(): JSX.Element {
                 };
                 void openFile(entry, undefined, line, column);
               }}
+            />
+          ) : (
+            <TasksPanel
+              onListTasks={() => window.touwa.tasks.list()}
+              onRunTask={(label) => window.touwa.tasks.run(label)}
             />
           ))}
         <main className="editor-groups">

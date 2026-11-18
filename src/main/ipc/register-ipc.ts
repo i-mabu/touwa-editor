@@ -32,6 +32,7 @@ import {
   MAX_MUTATION_PATHS,
 } from "../git/git-service";
 import { runDiagnostics } from "../diagnostics/diagnostics-service";
+import { loadTasks, runTask } from "../tasks/tasks-service";
 
 const workspaceRoots = new Map<number, string>();
 const watchers = new Map<number, WorkspaceWatcher>();
@@ -243,6 +244,15 @@ export function registerIpc(): void {
   ipcMain.handle("diagnostics:run", async (event) =>
     runDiagnostics(requireRoot(event.sender.id)),
   );
+  ipcMain.handle("tasks:list", async (event) =>
+    loadTasks(requireRoot(event.sender.id)),
+  );
+  ipcMain.handle("tasks:run", async (event, label: unknown) => {
+    if (typeof label !== "string" || label.length === 0) {
+      throw new Error("Invalid task label.");
+    }
+    return runTask(requireRoot(event.sender.id), label);
+  });
   ipcMain.handle(
     "file:write",
     async (

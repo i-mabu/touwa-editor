@@ -63,6 +63,30 @@ export type DiagnosticsResult = {
   truncated: boolean;
 };
 
+export type TaskDef = {
+  label: string;
+  command: string;
+  args: string[];
+  cwd: string;
+};
+
+export type TasksListResult = {
+  tasks: TaskDef[];
+  error: string | null;
+};
+
+export type TaskRunResult = {
+  label: string;
+  exitCode: number | null;
+  signal: string | null;
+  timedOut: boolean;
+  stdout: string;
+  stderr: string;
+  stdoutTruncated: boolean;
+  stderrTruncated: boolean;
+  durationMs: number;
+};
+
 export function languageForPath(relativePath: string): string {
   const ext = relativePath.split(".").pop()?.toLowerCase() ?? "";
   switch (ext) {

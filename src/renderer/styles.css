@@ -652,3 +652,44 @@ button {
   white-space: normal;
   word-break: break-word;
 }
+.task-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 5px 6px;
+}
+.task-main {
+  flex: 1;
+  min-width: 0;
+}
+.task-label {
+  color: #e0e8f4;
+  font-size: 12px;
+  font-weight: 600;
+}
+.task-command {
+  color: #738198;
+  font-size: 11px;
+  word-break: break-all;
+}
+.task-run {
+  width: 26px;
+  height: 26px;
+}
+.task-output {
+  background: #10141c;
+  border: 1px solid #2b3443;
+  border-radius: 4px;
+  color: #b8c5d7;
+  font-family: Consolas, monospace;
+  font-size: 11px;
+  padding: 6px 8px;
+  margin: 4px 6px;
+  max-height: 240px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.task-stderr {
+  color: #f0a49a;
+}

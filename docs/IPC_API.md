@@ -129,6 +129,16 @@ const saved = await window.touwa.file.write(
 
 ワークスペースの TypeScript で型チェック（`tsc --noEmit --pretty false`）を実行し、結果を `DiagnosticsResult`（利用可否、理由、`Diagnostic[]`、上限超過フラグ）で返します。tsc はワークスペース自身の `node_modules/typescript` を node で実行します。`tsconfig.json` が無い、または TypeScript が未インストールの場合は例外にせず `available: false` と理由を返します。診断はファイル相対パス・行・列・重要度・コード（TSxxxx）・メッセージを持ち、最大500件です。
 
+## Tasks API（Phase 3）
+
+### `tasks.list()`
+
+`.touwa/tasks.json` を読み、検証済みのタスク定義を返します。戻り値は `TasksListResult`（`TaskDef[]` とエラー文字列）。ファイルが無い場合は空リスト（エラーなし）、書式が不正な場合は理由をエラーとして返し、タスクは読み込みません。
+
+### `tasks.run(label)`
+
+ラベルで指定したタスクを実行し、`TaskRunResult`（終了コード、シグナル、タイムアウト有無、stdout / stderr、所要時間）を返します。Renderer から送れるのはラベルのみで、コマンドや引数は Main が実行直前にファイルを読み直して決めます。実行はユーザーがパネルで実行ボタンを押したときに限ります。書式は `docs/TASKS.md` を参照してください。
+
 ## Error policy
 
 Renderer にはユーザーが対処できるメッセージを返し、内部パスや秘密情報を不要に露出させません。Main では原因を開発者向けログに記録しますが、token、password、環境変数の値は記録しません。

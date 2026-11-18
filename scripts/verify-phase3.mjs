@@ -59,6 +59,8 @@ const required = [
       "git:pull",
       "git:push",
       "diagnostics:run",
+      "tasks:list",
+      "tasks:run",
       "GitStatus",
       "GitCommit",
     ],
@@ -82,8 +84,24 @@ const required = [
     ],
   ],
   [
+    "src/main/tasks/tasks-service.ts",
+    ["parseTasksFile", "loadTasks", "runTask", "tasks.json"],
+  ],
+  [
+    "src/renderer/components/TasksPanel.tsx",
+    ["TASKS", "onListTasks", "onRunTask"],
+  ],
+  [
     "src/renderer/App.tsx",
-    ["GitPanel", "ProblemsPanel", "Ctrl+Shift+G", "Ctrl+Shift+M", '"problems"'],
+    [
+      "GitPanel",
+      "ProblemsPanel",
+      "Ctrl+Shift+G",
+      "Ctrl+Shift+M",
+      '"problems"',
+      "TasksPanel",
+      '"tasks"',
+    ],
   ],
 ];
 

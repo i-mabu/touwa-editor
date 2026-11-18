@@ -35,6 +35,11 @@ import {
   parseTscOutput,
   runDiagnostics,
 } from "../src/main/diagnostics/diagnostics-service.ts";
+import {
+  parseTasksFile,
+  loadTasks,
+  runTask,
+} from "../src/main/tasks/tasks-service.ts";
 
 const execFileAsync = promisify(execFile);
 
@@ -393,6 +398,83 @@ test("runDiagnostics reports unavailable without a tsconfig", async () => {
   const result = await runDiagnostics(root);
   assert.equal(result.available, false);
   assert.deepEqual(result.diagnostics, []);
+});
+
+test("parseTasksFile validates the tasks.json schema strictly", () => {
+  const ok = parseTasksFile(
+    JSON.stringify({
+      tasks: [
+        { label: "test", command: "npm", args: ["test"] },
+        { label: "build", command: "npm", args: ["run", "build"], cwd: "." },
+      ],
+    }),
+  );
+  assert.equal(ok.length, 2);
+  assert.equal(ok[0].cwd, ".");
+  assert.throws(() => parseTasksFile("not json"), /JSON/);
+  assert.throws(() => parseTasksFile("{}"), /tasks/);
+  assert.throws(
+    () =>
+      parseTasksFile(
+        JSON.stringify({
+          tasks: [{ label: "x", command: "../bin/sh", args: [] }],
+        }),
+      ),
+    /command/,
+  );
+  assert.throws(
+    () =>
+      parseTasksFile(
+        JSON.stringify({
+          tasks: [
+            { label: "dup", command: "npm", args: [] },
+            { label: "dup", command: "npm", args: [] },
+          ],
+        }),
+      ),
+    /重複/,
+  );
+  assert.throws(
+    () =>
+      parseTasksFile(
+        JSON.stringify({
+          tasks: [{ label: "x", command: "npm", args: "test" }],
+        }),
+      ),
+    /args/,
+  );
+});
+
+test("loadTasks / runTask execute a declared task end to end", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "touwa-phase3-tasks-"));
+  // No file yet: an empty, error-free list.
+  const empty = await loadTasks(root);
+  assert.deepEqual(empty, { tasks: [], error: null });
+
+  await mkdir(path.join(root, ".touwa"), { recursive: true });
+  await writeFile(
+    path.join(root, ".touwa", "tasks.json"),
+    JSON.stringify({
+      tasks: [
+        {
+          label: "hello",
+          command: "node",
+          args: ["-e", "process.stdout.write('task-ok')"],
+        },
+        { label: "fail", command: "node", args: ["-e", "process.exit(5)"] },
+      ],
+    }),
+  );
+  const listed = await loadTasks(root);
+  assert.equal(listed.tasks.length, 2);
+  assert.equal(listed.error, null);
+
+  const ran = await runTask(root, "hello");
+  assert.equal(ran.exitCode, 0);
+  assert.equal(ran.stdout, "task-ok");
+  const failed = await runTask(root, "fail");
+  assert.equal(failed.exitCode, 5);
+  await assert.rejects(() => runTask(root, "missing"), /Task not found/);
 });
 
 test("getGitStatus reports a plain folder as not a repository", async () => {

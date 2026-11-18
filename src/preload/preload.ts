@@ -78,6 +78,30 @@ type DiagnosticsResult = {
   truncated: boolean;
 };
 
+type TaskDef = {
+  label: string;
+  command: string;
+  args: string[];
+  cwd: string;
+};
+
+type TasksListResult = {
+  tasks: TaskDef[];
+  error: string | null;
+};
+
+type TaskRunResult = {
+  label: string;
+  exitCode: number | null;
+  signal: string | null;
+  timedOut: boolean;
+  stdout: string;
+  stderr: string;
+  stdoutTruncated: boolean;
+  stderrTruncated: boolean;
+  durationMs: number;
+};
+
 const api = {
   workspace: {
     open: (): Promise<{ root: string; entries: FileEntry[] } | null> =>
@@ -140,6 +164,11 @@ const api = {
     run: (): Promise<DiagnosticsResult> =>
       ipcRenderer.invoke("diagnostics:run"),
   },
+  tasks: {
+    list: (): Promise<TasksListResult> => ipcRenderer.invoke("tasks:list"),
+    run: (label: string): Promise<TaskRunResult> =>
+      ipcRenderer.invoke("tasks:run", label),
+  },
   file: {
     read: (relativePath: string): Promise<FileSnapshot> =>
       ipcRenderer.invoke("file:read", relativePath),
@@ -174,4 +203,7 @@ export type {
   GitCommit,
   Diagnostic,
   DiagnosticsResult,
+  TaskDef,
+  TasksListResult,
+  TaskRunResult,
 };

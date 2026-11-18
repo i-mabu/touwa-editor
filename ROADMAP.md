@@ -35,7 +35,9 @@ Language Server、Completion、Hover、Signature Help、Diagnostics、Git、Inte
 
 - Diagnostics 第一弾: Problems パネル（Ctrl+Shift+M）。ワークスペース自身の TypeScript（`tsc --noEmit`）の出力をパースし、ファイル別にエラー／警告を表示、クリックで該当位置へ移動します。結果の形式はチェッカー非依存で、将来の言語サーバー診断も同じパネルに流せます。
 
-未実装: Language Server 系（Completion / Hover / Signature Help と常駐型の診断）、Integrated Terminal、Tasks、Debugger / DAP。
+- Tasks: `.touwa/tasks.json` のタスク定義を Tasks パネルから実行（明示的な実行操作のみ、自動実行なし）。定義の検証は Main で行い、Renderer からはラベルだけを受けます。書式は `docs/TASKS.md`。
+
+未実装: Language Server 系（Completion / Hover / Signature Help と常駐型の診断）、Integrated Terminal、Debugger / DAP。
 
 ## Phase 4 — Extensibility
 
