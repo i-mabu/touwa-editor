@@ -1,9 +1,45 @@
+import fs from "node:fs";
+import path from "node:path";
 import type { IPty } from "node-pty";
 import {
   assertValidArgs,
   assertValidCommand,
   assertValidCwd,
 } from "./process-runner.ts";
+
+/**
+ * Resolves a bare executable name to an absolute path on Windows by
+ * searching PATH with the PATHEXT extensions. node-pty's ConPTY
+ * backend does not reliably find bare names, so the lookup is done
+ * here (the same approach terminal emulators take). Names that
+ * already carry a path or an extension are returned unchanged, as
+ * are names that cannot be found (node-pty then reports the error).
+ */
+export function resolveWindowsExecutable(
+  command: string,
+  env: NodeJS.ProcessEnv,
+  exists: (candidate: string) => boolean = fs.existsSync,
+): string {
+  if (command.includes("/") || command.includes("\\")) return command;
+  const extensions = (env.PATHEXT ?? ".EXE;.CMD;.BAT;.COM")
+    .split(";")
+    .filter((ext) => ext.length > 0);
+  const hasExtension = extensions.some((ext) =>
+    command.toLowerCase().endsWith(ext.toLowerCase()),
+  );
+  const dirs = (env.PATH ?? "").split(";").filter((dir) => dir.length > 0);
+  for (const dir of dirs) {
+    // win32 joins explicitly: this helper only ever runs for
+    // Windows paths, whatever the host platform of the caller is.
+    const candidates = hasExtension
+      ? [path.win32.join(dir, command)]
+      : extensions.map((ext) => path.win32.join(dir, command + ext));
+    for (const candidate of candidates) {
+      if (exists(candidate)) return candidate;
+    }
+  }
+  return command;
+}
 
 // ===== PTY sessions (Phase 3) =====
 // Long-lived pseudo-terminal sessions via node-pty. node-pty is a
@@ -67,7 +103,14 @@ export class PtyManager {
     assertValidCwd(options.cwd);
     const mod = await this.loadModule();
     if (!mod) throw new Error("PTY is not available on this system.");
-    const proc = mod.spawn(options.command, options.args, {
+    const file =
+      process.platform === "win32"
+        ? resolveWindowsExecutable(
+            options.command,
+            options.env ?? process.env,
+          )
+        : options.command;
+    const proc = mod.spawn(file, options.args, {
       name: "xterm-256color",
       cols: options.cols ?? DEFAULT_PTY_COLS,
       rows: options.rows ?? DEFAULT_PTY_ROWS,

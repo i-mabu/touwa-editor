@@ -68,7 +68,10 @@ import {
   mapRemoteProperties,
   urlToRelativePath,
 } from "../src/main/debug/debug-service.ts";
-import { PtyManager } from "../src/main/process/pty-manager.ts";
+import {
+  PtyManager,
+  resolveWindowsExecutable,
+} from "../src/main/process/pty-manager.ts";
 
 const execFileAsync = promisify(execFile);
 
@@ -613,6 +616,25 @@ test("TerminalService runs the platform shell end to end", async () => {
   await waitFor(() => exited);
 });
 
+test("resolveWindowsExecutable searches PATH with PATHEXT", () => {
+  const env = {
+    PATH: "C:\\Tools;C:\\Windows\\System32",
+    PATHEXT: ".EXE;.CMD",
+  };
+  const existing = new Set(["C:\\Windows\\System32\\node.EXE"]);
+  const exists = (candidate) => existing.has(candidate);
+  assert.equal(
+    resolveWindowsExecutable("node", env, exists),
+    "C:\\Windows\\System32\\node.EXE",
+  );
+  // Names with a path or extension, and misses, pass through.
+  assert.equal(
+    resolveWindowsExecutable("C:\\Tools\\x.exe", env, exists),
+    "C:\\Tools\\x.exe",
+  );
+  assert.equal(resolveWindowsExecutable("missing", env, exists), "missing");
+});
+
 test("PtyManager gives the child a real TTY and echoes input", async (t) => {
   const manager = new PtyManager();
   if (!(await manager.available())) {
@@ -620,15 +642,20 @@ test("PtyManager gives the child a real TTY and echoes input", async (t) => {
     return;
   }
   const root = await mkdtemp(path.join(tmpdir(), "touwa-phase3-pty-"));
+  // A script file (not node -e) keeps the child command line free of
+  // quoting hazards, which ConPTY is sensitive to on Windows.
+  const scriptPath = path.join(root, "probe.js");
+  await writeFile(
+    scriptPath,
+    "console.log('isTTY=' + Boolean(process.stdout.isTTY));\n" +
+      "process.stdin.on('data', (d) => console.log('got:' + String(d).trim()));\n",
+  );
   let received = "";
   let exited = false;
   const id = await manager.start(
     {
       command: "node",
-      args: [
-        "-e",
-        "console.log('isTTY=' + Boolean(process.stdout.isTTY)); process.stdin.on('data', (d) => console.log('got:' + String(d).trim()));",
-      ],
+      args: [scriptPath],
       cwd: root,
     },
     {
