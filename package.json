@@ -19,7 +19,7 @@
     "test": "node --test scripts/test-phase2.mjs scripts/test-tabs.mjs scripts/test-vscode-ux.mjs",
     "verify:all": "node scripts/verify-all.mjs",
     "build": "electron-vite build",
-    "package": "electron-builder",
+    "package": "electron-builder --publish never",
     "preview": "electron-vite preview"
   },
   "dependencies": {
