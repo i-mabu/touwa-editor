@@ -1,3 +1,4 @@
+import fs from "node:fs/promises";
 import net from "node:net";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -348,8 +349,25 @@ export class DebugService {
     if (!isDebuggablePath(scriptRelativePath)) {
       throw new Error("Only .js / .mjs / .cjs files can be debugged.");
     }
-    const absoluteScript = assertWorkspacePath(root, scriptRelativePath);
-    this.root = root;
+    // Node reports script URLs from the real path it loaded (on
+    // Windows the temp dir and user profile often differ in 8.3
+    // short-name vs long-name form), so canonicalize the root and
+    // the script path; otherwise breakpoint URLs would not match
+    // the loaded script and frames would not map back to files.
+    let realRoot = root;
+    try {
+      realRoot = await fs.realpath(root);
+    } catch {
+      // Keep the given root; mapping falls back to lexical paths.
+    }
+    let absoluteScript = assertWorkspacePath(realRoot, scriptRelativePath);
+    try {
+      absoluteScript = await fs.realpath(absoluteScript);
+    } catch {
+      // The lexical path is used; the spawn below will surface a
+      // missing file as a debugger start failure.
+    }
+    this.root = realRoot;
     this.hooks = hooks;
     this.started = false;
     this.terminatedEmitted = false;
@@ -436,14 +454,16 @@ export class DebugService {
     reason?: string;
     callFrames?: unknown;
   }): void {
-    if (!this.started || this.root === null) return;
     // The "Break on start" pause is the --inspect-brk entry stop,
-    // not a user-visible one: resume past it immediately.
+    // not a user-visible one: resume past it immediately. This is
+    // checked before the started flag so an early-arriving entry
+    // pause can never leave the target stopped forever.
     if (this.expectingEntryPause && params.reason === "Break on start") {
       this.expectingEntryPause = false;
       void this.cdp?.send("Debugger.resume").catch(() => {});
       return;
     }
+    if (!this.started || this.root === null) return;
     const frames = Array.isArray(params.callFrames)
       ? (params.callFrames as RawCallFrame[])
       : [];
@@ -471,7 +491,12 @@ export class DebugService {
     lines: number[],
   ): Promise<void> {
     if (!this.cdp || this.root === null) return;
-    const absolute = assertWorkspacePath(this.root, relativePath);
+    let absolute = assertWorkspacePath(this.root, relativePath);
+    try {
+      absolute = await fs.realpath(absolute);
+    } catch {
+      // Not on disk (yet); the lexical URL is the best available.
+    }
     const url = pathToFileURL(absolute).href;
     for (const id of this.breakpointIds.get(url) ?? []) {
       await this.cdp
