@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { JSX } from "react";
 import Editor from "@monaco-editor/react";
 import type { editor } from "monaco-editor";
 import CommandPalette, {

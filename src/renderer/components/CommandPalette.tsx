@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { JSX } from "react";
 import { fuzzyFilter } from "../state/fuzzy.ts";
 
 export type PaletteCommand = {
