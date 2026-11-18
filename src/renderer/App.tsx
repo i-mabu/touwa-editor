@@ -9,6 +9,7 @@ import Explorer from "./components/Explorer";
 import QuickOpen from "./components/QuickOpen";
 import SearchPanel from "./components/SearchPanel";
 import GitPanel from "./components/GitPanel";
+import ProblemsPanel from "./components/ProblemsPanel";
 import type { FileEntry, SearchMatch } from "./components/types";
 import { languageForPath } from "./components/types";
 import {
@@ -32,7 +33,7 @@ import {
   type TabState,
 } from "./state/tabs";
 
-type Pane = "explorer" | "search" | "git";
+type Pane = "explorer" | "search" | "git" | "problems";
 
 export default function App(): JSX.Element {
   const [root, setRoot] = useState("No workspace");
@@ -456,6 +457,15 @@ export default function App(): JSX.Element {
       },
     },
     {
+      id: "show-problems",
+      title: "View: Show Problems",
+      shortcut: "Ctrl+Shift+M",
+      run: () => {
+        setSidebarVisible(true);
+        setPane("problems");
+      },
+    },
+    {
       id: "reload",
       title: "File: Reload from Disk",
       shortcut: "",
@@ -561,6 +571,10 @@ export default function App(): JSX.Element {
         e.preventDefault();
         setSidebarVisible(true);
         setPane("search");
+      } else if (key === "m" && e.shiftKey) {
+        e.preventDefault();
+        setSidebarVisible(true);
+        setPane("problems");
       }
     };
     window.addEventListener("keydown", handler);
@@ -624,6 +638,16 @@ export default function App(): JSX.Element {
           >
             GT
           </div>
+          <div
+            className={`activity-icon ${sidebarVisible && pane === "problems" ? "active" : ""}`}
+            title="Problems (Ctrl+Shift+M)"
+            onClick={() => {
+              setSidebarVisible(true);
+              setPane("problems");
+            }}
+          >
+            PR
+          </div>
         </nav>
         {sidebarVisible &&
           (pane === "explorer" ? (
@@ -683,7 +707,7 @@ export default function App(): JSX.Element {
                 void openFile(entry, undefined, match.line, match.column);
               }}
             />
-          ) : (
+          ) : pane === "git" ? (
             <GitPanel
               onLoadStatus={() => window.touwa.git.status()}
               onLoadLog={(limit) => window.touwa.git.log(limit)}
@@ -703,6 +727,18 @@ export default function App(): JSX.Element {
                   kind: "file",
                 };
                 void openFile(entry);
+              }}
+            />
+          ) : (
+            <ProblemsPanel
+              onRunDiagnostics={() => window.touwa.diagnostics.run()}
+              onJumpTo={(relativePath, line, column) => {
+                const entry: FileEntry = {
+                  name: relativePath.split("/").pop() ?? relativePath,
+                  relativePath,
+                  kind: "file",
+                };
+                void openFile(entry, undefined, line, column);
               }}
             />
           ))}

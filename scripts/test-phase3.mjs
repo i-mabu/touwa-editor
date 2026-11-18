@@ -4,7 +4,14 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { mkdtemp, writeFile, appendFile } from "node:fs/promises";
+import {
+  mkdtemp,
+  writeFile,
+  appendFile,
+  mkdir,
+  symlink,
+} from "node:fs/promises";
+import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import {
@@ -24,6 +31,10 @@ import {
   pullChanges,
   pushChanges,
 } from "../src/main/git/git-service.ts";
+import {
+  parseTscOutput,
+  runDiagnostics,
+} from "../src/main/diagnostics/diagnostics-service.ts";
 
 const execFileAsync = promisify(execFile);
 
@@ -314,6 +325,74 @@ test("fetch / pull / push sync against a local bare remote", async () => {
   await pushChanges(a);
   await fetchRemote(b);
   await assert.rejects(() => pullChanges(b), /git pull failed/);
+});
+
+test("parseTscOutput parses positioned and global diagnostics", () => {
+  const output = [
+    "src/bad.ts(1,7): error TS2322: Type 'string' is not assignable to type 'number'.",
+    "src/other.ts(12,3): warning TS6133: 'x' is declared but its value is never read.",
+    "error TS18003: No inputs were found in config file 'tsconfig.json'.",
+    "  The file is in the program because:",
+    "    Root file specified for compilation",
+    "",
+  ].join("\n");
+  const diagnostics = parseTscOutput(output);
+  assert.equal(diagnostics.length, 3);
+  assert.equal(diagnostics[0].relativePath, "src/bad.ts");
+  assert.equal(diagnostics[0].line, 1);
+  assert.equal(diagnostics[0].column, 7);
+  assert.equal(diagnostics[0].severity, "error");
+  assert.equal(diagnostics[0].code, "TS2322");
+  assert.equal(diagnostics[1].severity, "warning");
+  assert.equal(diagnostics[2].relativePath, "");
+  assert.equal(diagnostics[2].code, "TS18003");
+  assert.deepEqual(parseTscOutput(""), []);
+});
+
+test("runDiagnostics checks a real workspace with its own tsc", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "touwa-phase3-diag-"));
+  await writeFile(
+    path.join(root, "tsconfig.json"),
+    JSON.stringify({
+      compilerOptions: { strict: true, noEmit: true },
+      include: ["src"],
+    }),
+  );
+  await mkdir(path.join(root, "src"), { recursive: true });
+  await writeFile(
+    path.join(root, "src", "bad.ts"),
+    'const n: number = "text";\n',
+  );
+  // Point the workspace at this repository's own TypeScript install,
+  // the same layout a real workspace with typescript installed has.
+  const repoTypescript = fileURLToPath(
+    new URL("../node_modules/typescript", import.meta.url),
+  );
+  await mkdir(path.join(root, "node_modules"), { recursive: true });
+  await symlink(
+    repoTypescript,
+    path.join(root, "node_modules", "typescript"),
+    "junction",
+  );
+
+  const bad = await runDiagnostics(root);
+  assert.equal(bad.available, true);
+  assert.equal(bad.diagnostics.length, 1);
+  assert.equal(bad.diagnostics[0].code, "TS2322");
+  assert.equal(bad.diagnostics[0].relativePath, "src/bad.ts");
+  assert.equal(bad.diagnostics[0].line, 1);
+
+  await writeFile(path.join(root, "src", "bad.ts"), "const n: number = 42;\n");
+  const clean = await runDiagnostics(root);
+  assert.equal(clean.available, true);
+  assert.equal(clean.diagnostics.length, 0);
+});
+
+test("runDiagnostics reports unavailable without a tsconfig", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "touwa-phase3-diag-none-"));
+  const result = await runDiagnostics(root);
+  assert.equal(result.available, false);
+  assert.deepEqual(result.diagnostics, []);
 });
 
 test("getGitStatus reports a plain folder as not a repository", async () => {

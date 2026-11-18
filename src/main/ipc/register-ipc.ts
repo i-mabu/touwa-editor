@@ -31,6 +31,7 @@ import {
   MAX_LOG_ENTRIES,
   MAX_MUTATION_PATHS,
 } from "../git/git-service";
+import { runDiagnostics } from "../diagnostics/diagnostics-service";
 
 const workspaceRoots = new Map<number, string>();
 const watchers = new Map<number, WorkspaceWatcher>();
@@ -238,6 +239,9 @@ export function registerIpc(): void {
   );
   ipcMain.handle("git:push", async (event) =>
     pushChanges(requireRoot(event.sender.id)),
+  );
+  ipcMain.handle("diagnostics:run", async (event) =>
+    runDiagnostics(requireRoot(event.sender.id)),
   );
   ipcMain.handle(
     "file:write",

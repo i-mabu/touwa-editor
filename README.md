@@ -10,6 +10,7 @@ Touwa Editor は、Electron + React + TypeScript + Monaco Editor で構築する
 - Workspace Search / Replace、Multi Cursor、未保存変更表示、競合検知、Atomic Write
 - VS Code 風の操作：Command Palette、Quick Open、ショートカット、Explorer のファイル操作
 - Git 連携（Source Control パネル: ステータス表示、ステージング、コミット、フェッチ／プル／プッシュ、Phase 3）
+- 型チェック（Problems パネル: ワークスペースの tsc で診断し、クリックで該当位置へ移動、Phase 3）
 - Renderer / Preload / Main の責務分離
 - 型付き IPC と Main 側の入力検証
 - `path.resolve` / `realpath` による Workspace 境界チェック

@@ -623,3 +623,32 @@ button {
   opacity: 0.45;
   cursor: default;
 }
+.problem-entry,
+.problem-entry-static {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  color: #b8c5d7;
+  padding: 4px 6px;
+  font-size: 12px;
+}
+.problem-entry {
+  cursor: pointer;
+}
+.problem-entry:hover {
+  background: #25334a;
+  color: #fff;
+}
+.problem-entry .git-badge,
+.problem-entry-static .git-badge {
+  margin-top: 1px;
+}
+.problem-entry .git-path,
+.problem-entry-static .git-path {
+  white-space: normal;
+  word-break: break-word;
+}

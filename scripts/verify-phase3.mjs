@@ -58,6 +58,7 @@ const required = [
       "git:fetch",
       "git:pull",
       "git:push",
+      "diagnostics:run",
       "GitStatus",
       "GitCommit",
     ],
@@ -80,7 +81,10 @@ const required = [
       "プッシュ",
     ],
   ],
-  ["src/renderer/App.tsx", ["GitPanel", "Ctrl+Shift+G", '"git"']],
+  [
+    "src/renderer/App.tsx",
+    ["GitPanel", "ProblemsPanel", "Ctrl+Shift+G", "Ctrl+Shift+M", '"problems"'],
+  ],
 ];
 
 let failed = false;

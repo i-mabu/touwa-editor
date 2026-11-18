@@ -61,6 +61,23 @@ type GitCommit = {
   authorTime: number;
 };
 
+type Diagnostic = {
+  relativePath: string;
+  line: number;
+  column: number;
+  severity: "error" | "warning";
+  code: string;
+  message: string;
+  source: string;
+};
+
+type DiagnosticsResult = {
+  available: boolean;
+  reason: string | null;
+  diagnostics: Diagnostic[];
+  truncated: boolean;
+};
+
 const api = {
   workspace: {
     open: (): Promise<{ root: string; entries: FileEntry[] } | null> =>
@@ -119,6 +136,10 @@ const api = {
     pull: (): Promise<GitStatus> => ipcRenderer.invoke("git:pull"),
     push: (): Promise<GitStatus> => ipcRenderer.invoke("git:push"),
   },
+  diagnostics: {
+    run: (): Promise<DiagnosticsResult> =>
+      ipcRenderer.invoke("diagnostics:run"),
+  },
   file: {
     read: (relativePath: string): Promise<FileSnapshot> =>
       ipcRenderer.invoke("file:read", relativePath),
@@ -151,4 +172,6 @@ export type {
   GitStatusEntry,
   GitStatus,
   GitCommit,
+  Diagnostic,
+  DiagnosticsResult,
 };

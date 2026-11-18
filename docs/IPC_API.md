@@ -123,6 +123,12 @@ const saved = await window.touwa.file.write(
 
 リモートとの同期を行い、実行後の `GitStatus` を返します。プルは fast-forward のみ（分岐した場合はエラーとして報告し、自動マージしません）。プッシュは upstream が無いブランチでは `origin` へ upstream を設定して送ります。ネットワーク操作のため timeout は60秒、`GIT_TERMINAL_PROMPT=0` で資格情報プロンプトを即時失敗させます。認証はユーザーの Git 設定（SSH 鍵、資格情報ヘルパー）に委ね、エディタが資格情報を扱うことはありません。
 
+## Diagnostics API（Phase 3）
+
+### `diagnostics.run()`
+
+ワークスペースの TypeScript で型チェック（`tsc --noEmit --pretty false`）を実行し、結果を `DiagnosticsResult`（利用可否、理由、`Diagnostic[]`、上限超過フラグ）で返します。tsc はワークスペース自身の `node_modules/typescript` を node で実行します。`tsconfig.json` が無い、または TypeScript が未インストールの場合は例外にせず `available: false` と理由を返します。診断はファイル相対パス・行・列・重要度・コード（TSxxxx）・メッセージを持ち、最大500件です。
+
 ## Error policy
 
 Renderer にはユーザーが対処できるメッセージを返し、内部パスや秘密情報を不要に露出させません。Main では原因を開発者向けログに記録しますが、token、password、環境変数の値は記録しません。

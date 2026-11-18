@@ -33,7 +33,9 @@ Language Server、Completion、Hover、Signature Help、Diagnostics、Git、Inte
 - Git の書き込み操作: ステージング、ステージ取り消し、変更の破棄（確認ダイアログ付き）、コミット。パスは Main で Workspace 境界を再検証し、`--` 区切りで argv として渡します。
 - Git の同期: フェッチ、プル（fast-forward のみ）、プッシュ（初回は upstream を自動設定）。資格情報プロンプトは無効化し、認証はユーザーの Git 設定に委ねます。
 
-未実装: Language Server 系（Completion / Hover / Signature Help / Diagnostics）、Integrated Terminal、Tasks、Debugger / DAP。
+- Diagnostics 第一弾: Problems パネル（Ctrl+Shift+M）。ワークスペース自身の TypeScript（`tsc --noEmit`）の出力をパースし、ファイル別にエラー／警告を表示、クリックで該当位置へ移動します。結果の形式はチェッカー非依存で、将来の言語サーバー診断も同じパネルに流せます。
+
+未実装: Language Server 系（Completion / Hover / Signature Help と常駐型の診断）、Integrated Terminal、Tasks、Debugger / DAP。
 
 ## Phase 4 — Extensibility
 

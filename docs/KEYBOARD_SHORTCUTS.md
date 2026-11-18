@@ -11,6 +11,7 @@ Touwa Editor のショートカットは、VS Code の使い方に寄せてい�
 | Ctrl+Shift+E              | Explorer を表示する             |
 | Ctrl+Shift+F              | Search を表示する               |
 | Ctrl+Shift+G              | Source Control（Git）を表示する |
+| Ctrl+Shift+M              | Problems（診断）を表示する      |
 | Ctrl+B                    | サイドバーの表示／非表示        |
 | Ctrl+S                    | 保存                            |
 | Ctrl+Shift+S              | すべて保存                      |
@@ -39,6 +40,7 @@ Touwa Editor のショートカットは、VS Code の使い方に寄せてい�
 | --------------------------------------------- | ------------------------------------------------------- |
 | Ctrl+`（統合ターミナル）                      | 未実装（Phase 3）                                       |
 | Ctrl+Shift+G（ソース管理）                    | 実装済み（Git パネル、Phase 3）                         |
+| Ctrl+Shift+M（問題パネル）                    | 実装済み（tsc 診断、Phase 3）                           |
 | Ctrl+Shift+X（拡張機能）                      | 未実装（Phase 4）                                       |
 | Ctrl+,（設定）                                | 未実装（Phase 4、Settings）                             |
 | Ctrl+N（新規無題ファイル）                    | Explorer の New File で空ファイルを作成する             |

@@ -46,6 +46,23 @@ export type GitCommit = {
   authorTime: number;
 };
 
+export type Diagnostic = {
+  relativePath: string;
+  line: number;
+  column: number;
+  severity: "error" | "warning";
+  code: string;
+  message: string;
+  source: string;
+};
+
+export type DiagnosticsResult = {
+  available: boolean;
+  reason: string | null;
+  diagnostics: Diagnostic[];
+  truncated: boolean;
+};
+
 export function languageForPath(relativePath: string): string {
   const ext = relativePath.split(".").pop()?.toLowerCase() ?? "";
   switch (ext) {

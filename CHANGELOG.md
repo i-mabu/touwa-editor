@@ -11,6 +11,7 @@
 - `git.status` / `git.log` IPC と `verify:phase3`、`npm test` に Phase 3 のテスト7件（計28件）を追加しました。
 - Git パネルに書き込み操作を追加しました。変更のステージング、ステージ取り消し、破棄（確認ダイアログ付き）、コミットメッセージ欄からのコミットに対応します（`git.stage` / `git.unstage` / `git.discard` / `git.commit` IPC）。パスは Main で Workspace 境界を再検証します。Phase 3 テストは計10件（全体31件）になりました。
 - Git パネルに同期操作を追加しました。フェッチ、プル（fast-forward のみ、分岐時はエラー）、プッシュ（初回は upstream を自動設定）に対応します（`git.fetch` / `git.pull` / `git.push` IPC）。プロセス実行サービスに環境変数の受け渡しを追加し、資格情報プロンプトを無効化して認証はユーザーの Git 設定に委ねます。Phase 3 テストは計12件（全体33件）になりました。
+- Problems パネル（Ctrl+Shift+M）を追加しました。ワークスペース自身の TypeScript（`tsc --noEmit`）で型チェックし、エラー／警告をファイル別に表示、クリックで該当位置へ移動します（`diagnostics.run` IPC）。tsconfig が無いワークスペースでは理由を表示して利用不可とします。Phase 3 テストは計15件（全体36件）になりました。
 
 - 複数タブと Editor Groups（最大2グループ、Split Right／Close Group）
 - 再帰 Explorer（ディレクトリの遅延読み込み、ディレクトリ優先ソート）
