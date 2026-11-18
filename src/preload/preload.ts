@@ -119,6 +119,37 @@ type LspDiagnosticsEvent = {
   diagnostics: Diagnostic[];
 };
 
+type LspTextRange = {
+  startLine: number;
+  startColumn: number;
+  endLine: number;
+  endColumn: number;
+};
+
+type LspCompletionItem = {
+  label: string;
+  kind: number | null;
+  detail: string;
+  documentation: string;
+  insertText: string;
+  range: LspTextRange | null;
+};
+
+type LspHoverResult = {
+  contents: string;
+  range: LspTextRange | null;
+};
+
+type LspSignatureHelpResult = {
+  signatures: {
+    label: string;
+    documentation: string;
+    parameters: { label: string; documentation: string }[];
+  }[];
+  activeSignature: number;
+  activeParameter: number;
+};
+
 const api = {
   workspace: {
     open: (): Promise<{ root: string; entries: FileEntry[] } | null> =>
@@ -221,6 +252,24 @@ const api = {
       ipcRenderer.invoke("lsp:change", relativePath, text),
     close: (relativePath: string): Promise<void> =>
       ipcRenderer.invoke("lsp:close", relativePath),
+    completion: (
+      relativePath: string,
+      line: number,
+      column: number,
+    ): Promise<LspCompletionItem[]> =>
+      ipcRenderer.invoke("lsp:completion", relativePath, line, column),
+    hover: (
+      relativePath: string,
+      line: number,
+      column: number,
+    ): Promise<LspHoverResult | null> =>
+      ipcRenderer.invoke("lsp:hover", relativePath, line, column),
+    signatureHelp: (
+      relativePath: string,
+      line: number,
+      column: number,
+    ): Promise<LspSignatureHelpResult | null> =>
+      ipcRenderer.invoke("lsp:signatureHelp", relativePath, line, column),
     onDiagnostics: (
       callback: (event: LspDiagnosticsEvent) => void,
     ): (() => void) => {
@@ -274,4 +323,8 @@ export type {
   TerminalDataEvent,
   TerminalExitEvent,
   LspDiagnosticsEvent,
+  LspTextRange,
+  LspCompletionItem,
+  LspHoverResult,
+  LspSignatureHelpResult,
 };

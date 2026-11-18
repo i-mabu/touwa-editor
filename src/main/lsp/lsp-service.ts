@@ -90,6 +90,187 @@ export function mapPublishDiagnostics(
   };
 }
 
+/** A text range with 1-based line/column, as the renderer uses. */
+export type LspTextRange = {
+  startLine: number;
+  startColumn: number;
+  endLine: number;
+  endColumn: number;
+};
+
+export type LspCompletionItem = {
+  label: string;
+  /** LSP CompletionItemKind (1–25), or null when the server omitted it. */
+  kind: number | null;
+  detail: string;
+  documentation: string;
+  insertText: string;
+  range: LspTextRange | null;
+};
+
+export type LspHoverResult = {
+  contents: string;
+  range: LspTextRange | null;
+};
+
+export type LspSignatureHelpResult = {
+  signatures: {
+    label: string;
+    documentation: string;
+    parameters: { label: string; documentation: string }[];
+  }[];
+  activeSignature: number;
+  activeParameter: number;
+};
+
+type RawPosition = { line?: number; character?: number };
+type RawRange = { start?: RawPosition; end?: RawPosition };
+
+function mapRange(range: RawRange | undefined): LspTextRange | null {
+  if (!range?.start || !range?.end) return null;
+  return {
+    startLine: (range.start.line ?? 0) + 1,
+    startColumn: (range.start.character ?? 0) + 1,
+    endLine: (range.end.line ?? 0) + 1,
+    endColumn: (range.end.character ?? 0) + 1,
+  };
+}
+
+/**
+ * Flattens the LSP documentation shapes (plain string, MarkupContent,
+ * MarkedString, or an array of them) into a single markdown string.
+ */
+export function markupToText(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (Array.isArray(value)) {
+    return value
+      .map((entry) => markupToText(entry))
+      .filter((text) => text.length > 0)
+      .join("\n\n");
+  }
+  if (value !== null && typeof value === "object") {
+    const record = value as { value?: unknown; language?: unknown };
+    if (typeof record.value === "string") {
+      if (typeof record.language === "string" && record.language) {
+        return `\`\`\`${record.language}\n${record.value}\n\`\`\``;
+      }
+      return record.value;
+    }
+  }
+  return "";
+}
+
+const MAX_COMPLETION_ITEMS = 200;
+
+export function mapCompletionResult(result: unknown): LspCompletionItem[] {
+  const rawItems: unknown[] = Array.isArray(result)
+    ? result
+    : result !== null &&
+        typeof result === "object" &&
+        Array.isArray((result as { items?: unknown }).items)
+      ? ((result as { items: unknown[] }).items as unknown[])
+      : [];
+  const items: LspCompletionItem[] = [];
+  for (const raw of rawItems) {
+    if (raw === null || typeof raw !== "object") continue;
+    const item = raw as {
+      label?: unknown;
+      kind?: unknown;
+      detail?: unknown;
+      documentation?: unknown;
+      insertText?: unknown;
+      textEdit?: { range?: RawRange; newText?: unknown };
+    };
+    const label =
+      typeof item.label === "string"
+        ? item.label
+        : item.label !== null &&
+            typeof item.label === "object" &&
+            typeof (item.label as { label?: unknown }).label === "string"
+          ? ((item.label as { label: string }).label as string)
+          : null;
+    if (label === null || label === "") continue;
+    const editText =
+      typeof item.textEdit?.newText === "string"
+        ? item.textEdit.newText
+        : null;
+    items.push({
+      label,
+      kind: typeof item.kind === "number" ? item.kind : null,
+      detail: typeof item.detail === "string" ? item.detail : "",
+      documentation: markupToText(item.documentation),
+      insertText:
+        editText ??
+        (typeof item.insertText === "string" ? item.insertText : label),
+      range: mapRange(item.textEdit?.range),
+    });
+    if (items.length >= MAX_COMPLETION_ITEMS) break;
+  }
+  return items;
+}
+
+export function mapHoverResult(result: unknown): LspHoverResult | null {
+  if (result === null || typeof result !== "object") return null;
+  const hover = result as { contents?: unknown; range?: RawRange };
+  const contents = markupToText(hover.contents);
+  if (contents === "") return null;
+  return { contents, range: mapRange(hover.range) };
+}
+
+export function mapSignatureHelpResult(
+  result: unknown,
+): LspSignatureHelpResult | null {
+  if (result === null || typeof result !== "object") return null;
+  const help = result as {
+    signatures?: unknown;
+    activeSignature?: unknown;
+    activeParameter?: unknown;
+  };
+  if (!Array.isArray(help.signatures)) return null;
+  const signatures: LspSignatureHelpResult["signatures"] = [];
+  for (const raw of help.signatures) {
+    if (raw === null || typeof raw !== "object") continue;
+    const signature = raw as {
+      label?: unknown;
+      documentation?: unknown;
+      parameters?: unknown;
+    };
+    if (typeof signature.label !== "string") continue;
+    const parameters: { label: string; documentation: string }[] = [];
+    if (Array.isArray(signature.parameters)) {
+      for (const rawParam of signature.parameters) {
+        if (rawParam === null || typeof rawParam !== "object") continue;
+        const param = rawParam as { label?: unknown; documentation?: unknown };
+        const label =
+          typeof param.label === "string"
+            ? param.label
+            : Array.isArray(param.label) &&
+                typeof param.label[0] === "number" &&
+                typeof param.label[1] === "number"
+              ? signature.label.slice(param.label[0], param.label[1])
+              : "";
+        parameters.push({
+          label,
+          documentation: markupToText(param.documentation),
+        });
+      }
+    }
+    signatures.push({
+      label: signature.label,
+      documentation: markupToText(signature.documentation),
+      parameters,
+    });
+  }
+  if (signatures.length === 0) return null;
+  return {
+    signatures,
+    activeSignature:
+      typeof help.activeSignature === "number" ? help.activeSignature : 0,
+    activeParameter:
+      typeof help.activeParameter === "number" ? help.activeParameter : 0,
+  };
+}
+
 const MAX_DOCUMENT_CHARS = 2_000_000;
 
 export function serverEntryPath(): string {
@@ -241,6 +422,79 @@ export class LspService {
     for (const listener of [...this.listeners]) {
       listener(relativePath, []);
     }
+  }
+
+  /**
+   * Sends a position-based request for an already-synced document.
+   * Returns null for unsupported files and documents the renderer has
+   * not opened (the renderer flushes a change before requesting, so
+   * an unopened document simply has nothing to answer with yet).
+   * Positions are 1-based, as the renderer uses them.
+   */
+  private async requestForDocument(
+    root: string,
+    relativePath: string,
+    method: string,
+    line: number,
+    column: number,
+  ): Promise<unknown> {
+    if (languageIdForPath(relativePath) === null) return null;
+    const absolute = assertWorkspacePath(root, relativePath);
+    const uri = pathToUri(absolute);
+    if (!this.documents.has(uri)) return null;
+    const client = await this.ensureClient(root);
+    return client.request(method, {
+      textDocument: { uri },
+      position: { line: line - 1, character: column - 1 },
+    });
+  }
+
+  async completion(
+    root: string,
+    relativePath: string,
+    line: number,
+    column: number,
+  ): Promise<LspCompletionItem[]> {
+    const result = await this.requestForDocument(
+      root,
+      relativePath,
+      "textDocument/completion",
+      line,
+      column,
+    );
+    return mapCompletionResult(result);
+  }
+
+  async hover(
+    root: string,
+    relativePath: string,
+    line: number,
+    column: number,
+  ): Promise<LspHoverResult | null> {
+    const result = await this.requestForDocument(
+      root,
+      relativePath,
+      "textDocument/hover",
+      line,
+      column,
+    );
+    return mapHoverResult(result);
+  }
+
+  async signatureHelp(
+    root: string,
+    relativePath: string,
+    line: number,
+    column: number,
+  ): Promise<LspSignatureHelpResult | null> {
+    const result = await this.requestForDocument(
+      root,
+      relativePath,
+      "textDocument/signatureHelp",
+      line,
+      column,
+    );
+    return mapSignatureHelpResult(result);
   }
 
   async dispose(): Promise<void> {

@@ -22,7 +22,7 @@ Explorer selection -> model registry -> tab state -> editor group layout
 
 ## Phase 3 — Developer Tools
 
-**Status: ⏳ 一部実装（Git／Diagnostics／Tasks／Terminal／LSP 診断まで）**
+**Status: ⏳ 一部実装（Git／Diagnostics／Tasks／Terminal／LSP まで）**
 
 Language Server、Completion、Hover、Signature Help、Diagnostics、Git、Integrated Terminal、Tasks、Debugger / DAP を追加します。外部 process は `shell: false`、argv 分離、cwd 検証、timeout、stop、exit code、stdout / stderr 分離を共通要件とします。
 
@@ -41,7 +41,9 @@ Language Server、Completion、Hover、Signature Help、Diagnostics、Git、Inte
 
 - Language Server 第一弾: 同梱の typescript-language-server による常駐型の診断。開いている TypeScript / JavaScript ファイルを全文同期し（変更は Renderer で 400ms デバウンス）、サーバーが発行する診断を tsc と同じ形式に変換して Problems パネルに常時表示します（出典は [lsp] / [tsc] で区別）。サーバーはワークスペース自身の TypeScript を優先し、無ければ同梱版を使います。プロセス管理はセッション基盤を、フレーミングと JSON-RPC は `src/main/lsp/` を使います。
 
-未実装: Language Server の Completion / Hover / Signature Help、Debugger / DAP、ターミナルの PTY 化。
+- Language Server 第二弾: Completion / Hover / Signature Help。Monaco にプロバイダを登録し、言語サーバーの結果を表示します（補完候補は最大200件、種別は Monaco の CompletionItemKind に変換）。リクエスト前に保留中の変更同期を即時送信してサーバーとエディタの内容を一致させます。重複を避けるため、TS/JS については Monaco 標準の補完・Hover・Signature Help を無効化しています。
+
+未実装: Debugger / DAP、ターミナルの PTY 化。
 
 ## Phase 4 — Extensibility
 

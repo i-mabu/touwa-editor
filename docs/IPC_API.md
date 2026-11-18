@@ -157,7 +157,9 @@ Renderer が所有するドキュメントテキストを言語サーバーへ�
 
 サーバーが発行した診断を `{relativePath, diagnostics}` で受けます。診断は tsc と共通の `Diagnostic` 形式で、`source` は `"lsp"` です。イベントはドキュメントを同期したことのあるウィンドウにだけ届きます。ドキュメントを閉じると、そのファイルの診断は空で通知され、表示から消えます。
 
-現段階の言語サーバー連携は診断のみです。Completion / Hover / Signature Help は未実装です。
+### `lsp.completion(relativePath, line, column)` / `lsp.hover(...)` / `lsp.signatureHelp(...)`
+
+カーソル位置（1-based）に対する補完候補・Hover・Signature Help を言語サーバーへ問い合わせ、Renderer が扱える形に変換して返します。位置は Main で検証し（行 1–1,000,000、列 1–100,000 の整数）、対象は同期済みのドキュメントのみです（未オープンの場合は空の結果を返します）。補完候補は最大200件で、ドキュメント文字列は markdown に平坦化します。Renderer はリクエスト前に保留中の変更同期を即時送信し、サーバー側のテキストを最新に揃えます。
 
 ## Error policy
 

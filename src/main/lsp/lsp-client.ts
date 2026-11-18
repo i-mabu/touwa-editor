@@ -219,6 +219,19 @@ export class LspClient {
         textDocument: {
           publishDiagnostics: { relatedInformation: true },
           synchronization: { didSave: false },
+          completion: {
+            completionItem: {
+              snippetSupport: false,
+              documentationFormat: ["markdown", "plaintext"],
+            },
+          },
+          hover: { contentFormat: ["markdown", "plaintext"] },
+          signatureHelp: {
+            signatureInformation: {
+              documentationFormat: ["markdown", "plaintext"],
+              parameterInformation: { labelOffsetSupport: true },
+            },
+          },
         },
         workspace: { configuration: true },
       },

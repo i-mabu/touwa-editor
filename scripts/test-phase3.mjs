@@ -53,8 +53,12 @@ import {
 import {
   LspService,
   languageIdForPath,
+  mapCompletionResult,
+  mapHoverResult,
   mapLspDiagnostic,
   mapPublishDiagnostics,
+  mapSignatureHelpResult,
+  markupToText,
 } from "../src/main/lsp/lsp-service.ts";
 
 const execFileAsync = promisify(execFile);
@@ -508,6 +512,17 @@ function waitFor(predicate, timeoutMs = 10_000) {
   });
 }
 
+async function waitForAsync(check, timeoutMs = 30_000) {
+  const started = Date.now();
+  for (;;) {
+    if (await check()) return;
+    if (Date.now() - started > timeoutMs) {
+      throw new Error("waitForAsync timed out");
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+}
+
 test("SessionManager streams stdin/stdout and reports exit", async () => {
   const manager = new SessionManager();
   let received = "";
@@ -736,6 +751,140 @@ test("LspService streams real diagnostics from the bundled server", async () => 
     assert.equal(found.source, "lsp");
     await service.changeDocument(root, "src/bad.ts", "const n: number = 42;\n");
     await waitFor(() => (byPath.get("src/bad.ts") ?? []).length === 0, 30_000);
+  } finally {
+    await service.dispose();
+  }
+});
+
+test("LSP completion/hover/signature-help results map to renderer shapes", () => {
+  assert.equal(markupToText("plain"), "plain");
+  assert.equal(markupToText({ kind: "markdown", value: "**md**" }), "**md**");
+  assert.equal(
+    markupToText({ language: "typescript", value: "const x = 1;" }),
+    "```typescript\nconst x = 1;\n```",
+  );
+  assert.equal(
+    markupToText(["first", { kind: "plaintext", value: "second" }]),
+    "first\n\nsecond",
+  );
+  assert.equal(markupToText(null), "");
+  assert.equal(markupToText(42), "");
+
+  const completions = mapCompletionResult({
+    isIncomplete: true,
+    items: [
+      {
+        label: "length",
+        kind: 10,
+        detail: "property length: number",
+        documentation: { kind: "markdown", value: "The length." },
+        textEdit: {
+          range: {
+            start: { line: 1, character: 2 },
+            end: { line: 1, character: 3 },
+          },
+          newText: "length",
+        },
+      },
+      { label: "charAt", insertText: "charAt()" },
+      { kind: 3 },
+    ],
+  });
+  assert.equal(completions.length, 2);
+  assert.deepEqual(completions[0], {
+    label: "length",
+    kind: 10,
+    detail: "property length: number",
+    documentation: "The length.",
+    insertText: "length",
+    range: { startLine: 2, startColumn: 3, endLine: 2, endColumn: 4 },
+  });
+  assert.equal(completions[1].insertText, "charAt()");
+  assert.equal(completions[1].range, null);
+  assert.deepEqual(mapCompletionResult(null), []);
+  assert.equal(mapCompletionResult([{ label: "x" }]).length, 1);
+
+  const hover = mapHoverResult({
+    contents: { kind: "markdown", value: "docs" },
+    range: {
+      start: { line: 0, character: 1 },
+      end: { line: 0, character: 5 },
+    },
+  });
+  assert.deepEqual(hover, {
+    contents: "docs",
+    range: { startLine: 1, startColumn: 2, endLine: 1, endColumn: 6 },
+  });
+  assert.equal(mapHoverResult(null), null);
+  assert.equal(mapHoverResult({ contents: "" }), null);
+
+  const help = mapSignatureHelpResult({
+    signatures: [
+      {
+        label: "greet(name: string): string",
+        documentation: "Greets.",
+        parameters: [{ label: [6, 18], documentation: "Who to greet." }],
+      },
+    ],
+    activeSignature: 0,
+    activeParameter: 0,
+  });
+  assert.equal(help.signatures[0].parameters[0].label, "name: string");
+  assert.equal(help.signatures[0].parameters[0].documentation, "Who to greet.");
+  assert.equal(mapSignatureHelpResult(null), null);
+  assert.equal(mapSignatureHelpResult({ signatures: [] }), null);
+});
+
+test("LspService answers completion, hover and signature help from the bundled server", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "touwa-phase3-lsp-req-"));
+  await writeFile(
+    path.join(root, "tsconfig.json"),
+    JSON.stringify({
+      compilerOptions: { strict: true },
+      include: ["src"],
+    }),
+  );
+  await mkdir(path.join(root, "src"), { recursive: true });
+  const text = [
+    "function greet(name: string): string {",
+    '  return "hi " + name;',
+    "}",
+    'const message: string = greet("world");',
+    "message.",
+    "",
+  ].join("\n");
+  await writeFile(path.join(root, "src", "main.ts"), text);
+  const service = new LspService(new SessionManager());
+  try {
+    await service.openDocument(root, "src/main.ts", text);
+    // Requests for a document that was never opened answer empty.
+    assert.deepEqual(await service.completion(root, "src/other.ts", 1, 1), []);
+    assert.equal(await service.hover(root, "src/other.ts", 1, 1), null);
+    // Completion after "message." offers the string members.
+    await waitForAsync(async () =>
+      (await service.completion(root, "src/main.ts", 5, 9)).some(
+        (item) => item.label === "length",
+      ),
+    );
+    // Hover over the greet call shows the function signature.
+    await waitForAsync(async () => {
+      const hover = await service.hover(root, "src/main.ts", 4, 27);
+      return hover !== null && hover.contents.includes("greet");
+    });
+    // Signature help inside the greet( call lists the name parameter.
+    await service.changeDocument(
+      root,
+      "src/main.ts",
+      text.replace('greet("world")', "greet("),
+    );
+    await waitForAsync(async () => {
+      const help = await service.signatureHelp(root, "src/main.ts", 4, 31);
+      return (
+        help !== null &&
+        help.signatures[0].label.includes("greet") &&
+        help.signatures[0].parameters.some((p) => p.label.includes("name"))
+      );
+    });
   } finally {
     await service.dispose();
   }

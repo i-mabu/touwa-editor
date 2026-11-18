@@ -15,6 +15,7 @@
 - Tasks パネルを追加しました。`.touwa/tasks.json` に定義したタスクを実行ボタンから実行し、終了コードと出力を表示します（`tasks.list` / `tasks.run` IPC）。自動実行はせず、Renderer からはラベルのみを受け、定義は Main が実行直前に検証します。書式は `docs/TASKS.md` に記載しました。Phase 3 テストは計17件（全体38件）になりました。
 - Terminal パネル（Ctrl+`）と常駐プロセスセッション基盤を追加しました。シェル（Windows は PowerShell／cmd、その他は $SHELL／sh）をワークスペースで起動し、入出力をストリーミングします（`terminal.start`/`terminal.write`/`terminal.kill`IPC と`terminal:data`/`terminal:exit` イベント）。セッションは開始したウィンドウが所有し、アプリ終了時にすべて終了します。パイプ接続のため PTY ではなく、TTY が必要な全画面プログラムは動作しません。Phase 3 テストは計20件（全体41件）になりました。
 - 言語サーバーの常駐診断を追加しました。同梱の typescript-language-server が開いている TypeScript / JavaScript ファイルを常時チェックし、診断を Problems パネルに tsc の結果と併せて表示します（`lsp.open`/`lsp.change`/`lsp.close` IPC と `lsp:diagnostics` イベント、出典は [lsp] / [tsc] で区別）。サーバーはワークスペース自身の TypeScript を優先し、ドキュメントは全文同期（変更は 400ms デバウンス）します。Completion / Hover は未実装です。Phase 3 テストは計24件（全体45件）になりました。
+- 言語サーバー連携に Completion / Hover / Signature Help を追加しました。Monaco にプロバイダを登録し、言語サーバーの補完候補（最大200件、種別は Monaco の CompletionItemKind に変換）・Hover・Signature Help を表示します（`lsp.completion`/`lsp.hover`/`lsp.signatureHelp` IPC）。リクエスト前に保留中の変更同期を即時送信してサーバーとエディタの内容を一致させ、重複を避けるため TS/JS では Monaco 標準の同機能を無効化しています。Phase 3 テストは計26件（全体47件）になりました。
 
 - 複数タブと Editor Groups（最大2グループ、Split Right／Close Group）
 - 再帰 Explorer（ディレクトリの遅延読み込み、ディレクトリ優先ソート）

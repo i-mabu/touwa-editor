@@ -326,6 +326,22 @@ export function registerIpc(): void {
   // the text). Diagnostics are forwarded to every window that has
   // subscribed by opening a document.
   const lspWatchers = new Set<number>();
+  const ensureLspWatcher = (event: IpcMainInvokeEvent): void => {
+    const sender = event.sender;
+    if (lspWatchers.has(sender.id)) return;
+    lspWatchers.add(sender.id);
+    lspService.onDiagnostics((path, diagnostics) => {
+      if (!sender.isDestroyed()) {
+        sender.send("lsp:diagnostics", {
+          relativePath: path,
+          diagnostics,
+        });
+      }
+    });
+    sender.once("destroyed", () => {
+      lspWatchers.delete(sender.id);
+    });
+  };
   const parseLspDocument = (
     event: IpcMainInvokeEvent,
     relativePath: unknown,
@@ -334,25 +350,38 @@ export function registerIpc(): void {
     if (typeof relativePath !== "string" || typeof text !== "string") {
       throw new Error("Invalid document.");
     }
-    const sender = event.sender;
-    if (!lspWatchers.has(sender.id)) {
-      lspWatchers.add(sender.id);
-      lspService.onDiagnostics((path, diagnostics) => {
-        if (!sender.isDestroyed()) {
-          sender.send("lsp:diagnostics", {
-            relativePath: path,
-            diagnostics,
-          });
-        }
-      });
-      sender.once("destroyed", () => {
-        lspWatchers.delete(sender.id);
-      });
-    }
+    ensureLspWatcher(event);
     return {
-      root: requireRoot(sender.id),
+      root: requireRoot(event.sender.id),
       relativePath,
       text,
+    };
+  };
+  const parseLspPosition = (
+    event: IpcMainInvokeEvent,
+    relativePath: unknown,
+    line: unknown,
+    column: unknown,
+  ): { root: string; relativePath: string; line: number; column: number } => {
+    if (typeof relativePath !== "string") {
+      throw new Error("Invalid document.");
+    }
+    if (
+      !Number.isInteger(line) ||
+      !Number.isInteger(column) ||
+      (line as number) < 1 ||
+      (column as number) < 1 ||
+      (line as number) > 1_000_000 ||
+      (column as number) > 100_000
+    ) {
+      throw new Error("Invalid position.");
+    }
+    ensureLspWatcher(event);
+    return {
+      root: requireRoot(event.sender.id),
+      relativePath,
+      line: line as number,
+      column: column as number,
     };
   };
   ipcMain.handle(
@@ -375,6 +404,37 @@ export function registerIpc(): void {
     }
     await lspService.closeDocument(requireRoot(event.sender.id), relativePath);
   });
+  ipcMain.handle(
+    "lsp:completion",
+    async (event, relativePath: unknown, line: unknown, column: unknown) => {
+      const pos = parseLspPosition(event, relativePath, line, column);
+      return lspService.completion(
+        pos.root,
+        pos.relativePath,
+        pos.line,
+        pos.column,
+      );
+    },
+  );
+  ipcMain.handle(
+    "lsp:hover",
+    async (event, relativePath: unknown, line: unknown, column: unknown) => {
+      const pos = parseLspPosition(event, relativePath, line, column);
+      return lspService.hover(pos.root, pos.relativePath, pos.line, pos.column);
+    },
+  );
+  ipcMain.handle(
+    "lsp:signatureHelp",
+    async (event, relativePath: unknown, line: unknown, column: unknown) => {
+      const pos = parseLspPosition(event, relativePath, line, column);
+      return lspService.signatureHelp(
+        pos.root,
+        pos.relativePath,
+        pos.line,
+        pos.column,
+      );
+    },
+  );
   ipcMain.handle(
     "file:write",
     async (

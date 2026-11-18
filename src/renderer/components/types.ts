@@ -116,6 +116,44 @@ export function isLspLanguagePath(relativePath: string): boolean {
   return LSP_EXTENSIONS.has(ext);
 }
 
+/**
+ * LSP CompletionItemKind (1–25) → Monaco CompletionItemKind (numeric).
+ * Monaco's enum values differ from LSP's, so kinds are translated
+ * before suggestions are handed to the editor.
+ */
+const MONACO_COMPLETION_KINDS: Record<number, number> = {
+  1: 18, // Text
+  2: 0, // Method
+  3: 1, // Function
+  4: 2, // Constructor
+  5: 3, // Field
+  6: 4, // Variable
+  7: 5, // Class
+  8: 7, // Interface
+  9: 8, // Module
+  10: 9, // Property
+  11: 12, // Unit
+  12: 13, // Value
+  13: 15, // Enum
+  14: 17, // Keyword
+  15: 27, // Snippet
+  16: 19, // Color
+  17: 20, // File
+  18: 21, // Reference
+  19: 23, // Folder
+  20: 16, // EnumMember
+  21: 14, // Constant
+  22: 6, // Struct
+  23: 10, // Event
+  24: 11, // Operator
+  25: 24, // TypeParameter
+};
+
+export function monacoCompletionKind(lspKind: number | null): number {
+  if (lspKind === null) return 18; // Text
+  return MONACO_COMPLETION_KINDS[lspKind] ?? 18;
+}
+
 export function languageForPath(relativePath: string): string {
   const ext = relativePath.split(".").pop()?.toLowerCase() ?? "";
   switch (ext) {

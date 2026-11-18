@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { JSX } from "react";
 import Editor from "@monaco-editor/react";
-import type { editor } from "monaco-editor";
+import type { Monaco } from "@monaco-editor/react";
+import type { editor, languages } from "monaco-editor";
 import CommandPalette, {
   type PaletteCommand,
 } from "./components/CommandPalette";
@@ -17,7 +18,11 @@ import type {
   FileEntry,
   SearchMatch,
 } from "./components/types";
-import { isLspLanguagePath, languageForPath } from "./components/types";
+import {
+  isLspLanguagePath,
+  languageForPath,
+  monacoCompletionKind,
+} from "./components/types";
 import {
   activateNextTab,
   activeGroup,
@@ -69,6 +74,7 @@ export default function App(): JSX.Element {
   const lspChangeTimersRef = useRef(
     new Map<string, ReturnType<typeof setTimeout>>(),
   );
+  const lspProvidersRegisteredRef = useRef(false);
 
   const tab = activeTab(groups);
 
@@ -136,6 +142,168 @@ export default function App(): JSX.Element {
       );
     },
     [],
+  );
+
+  // Requests (completion / hover / signature help) must not race the
+  // 400ms debounce: flush the current text first so the server answers
+  // against the same document the user sees.
+  const lspSyncNow = useCallback(
+    async (relativePath: string, text: string): Promise<void> => {
+      if (!isLspLanguagePath(relativePath)) return;
+      const timers = lspChangeTimersRef.current;
+      const pending = timers.get(relativePath);
+      if (pending) {
+        clearTimeout(pending);
+        timers.delete(relativePath);
+      }
+      await window.touwa.lsp.change(relativePath, text).catch(() => {});
+    },
+    [],
+  );
+
+  const pathForModel = useCallback(
+    (model: editor.ITextModel): string | null => {
+      for (const [tabId, instance] of editorsRef.current) {
+        if (instance.getModel() !== model) continue;
+        const found = groupsRef.current.groups
+          .flatMap((g) => g.tabs)
+          .find((t) => t.id === tabId);
+        return found?.relativePath ?? null;
+      }
+      return null;
+    },
+    [],
+  );
+
+  // Registers the language-server-backed Monaco providers once. The
+  // server owns completion / hover / signature help for TS/JS, so
+  // Monaco's built-in providers for those features are disabled to
+  // avoid duplicate suggestions.
+  const registerLspProviders = useCallback(
+    (monacoInstance: Monaco): void => {
+      if (lspProvidersRegisteredRef.current) return;
+      lspProvidersRegisteredRef.current = true;
+      const tsLanguages = monacoInstance.languages.typescript;
+      if (tsLanguages) {
+        for (const defaults of [
+          tsLanguages.typescriptDefaults,
+          tsLanguages.javascriptDefaults,
+        ]) {
+          defaults.setModeConfiguration({
+            ...defaults.modeConfiguration,
+            completionItems: false,
+            hovers: false,
+            signatureHelp: false,
+          });
+        }
+      }
+      for (const language of ["typescript", "javascript"]) {
+        monacoInstance.languages.registerCompletionItemProvider(language, {
+          triggerCharacters: [".", '"', "'"],
+          provideCompletionItems: async (model, position, _context, token) => {
+            const relativePath = pathForModel(model);
+            if (!relativePath) return { suggestions: [] };
+            await lspSyncNow(relativePath, model.getValue());
+            if (token.isCancellationRequested) return { suggestions: [] };
+            const items = await window.touwa.lsp
+              .completion(relativePath, position.lineNumber, position.column)
+              .catch(() => []);
+            if (token.isCancellationRequested) return { suggestions: [] };
+            // Monaco requires a range per item; when the server did
+            // not send a textEdit, replace the word at the cursor.
+            const word = model.getWordUntilPosition(position);
+            const defaultRange = {
+              startLineNumber: position.lineNumber,
+              startColumn: word.startColumn,
+              endLineNumber: position.lineNumber,
+              endColumn: word.endColumn,
+            };
+            return {
+              suggestions: items.map((item) => ({
+                label: item.label,
+                kind: monacoCompletionKind(
+                  item.kind,
+                ) as languages.CompletionItemKind,
+                detail: item.detail || undefined,
+                documentation: item.documentation
+                  ? { value: item.documentation }
+                  : undefined,
+                insertText: item.insertText,
+                range: item.range
+                  ? {
+                      startLineNumber: item.range.startLine,
+                      startColumn: item.range.startColumn,
+                      endLineNumber: item.range.endLine,
+                      endColumn: item.range.endColumn,
+                    }
+                  : defaultRange,
+              })),
+              incomplete: true,
+            };
+          },
+        });
+        monacoInstance.languages.registerHoverProvider(language, {
+          provideHover: async (model, position, token) => {
+            const relativePath = pathForModel(model);
+            if (!relativePath) return null;
+            await lspSyncNow(relativePath, model.getValue());
+            if (token.isCancellationRequested) return null;
+            const hover = await window.touwa.lsp
+              .hover(relativePath, position.lineNumber, position.column)
+              .catch(() => null);
+            if (!hover || token.isCancellationRequested) return null;
+            return {
+              contents: [{ value: hover.contents }],
+              range: hover.range
+                ? new monacoInstance.Range(
+                    hover.range.startLine,
+                    hover.range.startColumn,
+                    hover.range.endLine,
+                    hover.range.endColumn,
+                  )
+                : undefined,
+            };
+          },
+        });
+        monacoInstance.languages.registerSignatureHelpProvider(language, {
+          signatureHelpTriggerCharacters: ["(", ","],
+          provideSignatureHelp: async (model, position, token) => {
+            const relativePath = pathForModel(model);
+            if (!relativePath) return null;
+            await lspSyncNow(relativePath, model.getValue());
+            if (token.isCancellationRequested) return null;
+            const help = await window.touwa.lsp
+              .signatureHelp(
+                relativePath,
+                position.lineNumber,
+                position.column,
+              )
+              .catch(() => null);
+            if (!help || token.isCancellationRequested) return null;
+            return {
+              value: {
+                signatures: help.signatures.map((signature) => ({
+                  label: signature.label,
+                  documentation: signature.documentation
+                    ? { value: signature.documentation }
+                    : undefined,
+                  parameters: signature.parameters.map((parameter) => ({
+                    label: parameter.label,
+                    documentation: parameter.documentation
+                      ? { value: parameter.documentation }
+                      : undefined,
+                  })),
+                })),
+                activeSignature: help.activeSignature,
+                activeParameter: help.activeParameter,
+              },
+              dispose: () => {},
+            };
+          },
+        });
+      }
+    },
+    [lspSyncNow, pathForModel],
   );
 
   async function refreshEntries(): Promise<void> {
@@ -992,7 +1160,8 @@ export default function App(): JSX.Element {
                         );
                         lspSyncChange(groupTab.relativePath, text);
                       }}
-                      onMount={(instance) => {
+                      onMount={(instance, monacoInstance) => {
+                        registerLspProviders(monacoInstance);
                         editorsRef.current.set(groupTab.id, instance);
                         // Drop the reference when Monaco disposes the
                         // editor (tab closed), otherwise the map grows
