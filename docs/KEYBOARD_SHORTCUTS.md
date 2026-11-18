@@ -1,10 +1,10 @@
-# Keyboard Shortcuts
+# キーボードショートカット
 
 Touwa Editor のショートカットは、VS Code の使い方に寄せています。macOS では Ctrl を Cmd に読み替えてください。
 
 ## Touwa Editor のショートカット
 
-| Shortcut                  | Action                          |
+| ショートカット            | 操作                            |
 | ------------------------- | ------------------------------- |
 | Ctrl+Shift+P / F1         | Command Palette を開く          |
 | Ctrl+P                    | Quick Open（ファイル名で開く）  |
@@ -22,7 +22,7 @@ Touwa Editor のショートカットは、VS Code の使い方に寄せてい�
 
 ## Monaco Editor のショートカット（エディタ内で有効）
 
-| Shortcut                     | Action                     |
+| ショートカット               | 操作                       |
 | ---------------------------- | -------------------------- |
 | Ctrl+F                       | エディタ内検索             |
 | Ctrl+H                       | エディタ内置換             |
@@ -51,7 +51,7 @@ Touwa Editor のショートカットは、VS Code の使い方に寄せてい�
 
 ## マウス操作
 
-| 操作                       | Action                               |
+| 操作                       | 動作                                 |
 | -------------------------- | ------------------------------------ |
 | タブのミドルクリック       | タブを閉じる                         |
 | Explorer の右クリック      | New File／New Folder／Rename／Delete |

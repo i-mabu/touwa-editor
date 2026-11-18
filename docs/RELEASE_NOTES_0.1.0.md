@@ -1,24 +1,24 @@
-# Touwa Editor 0.1.0 Release Notes
+# Touwa Editor 0.1.0 リリースノート
 
-## Overview
+## 概要
 
 Touwa Editor Foundation の初回リリースです。将来のコード編集機能を安全に追加できる Electron アプリケーション基盤を提供します。
 
-## Added
+## 追加内容
 
-- Electron Main / Preload / Renderer architecture
-- React UI shell
+- Electron Main / Preload / Renderer アーキテクチャ
+- React UI シェル
 - Monaco Editor
-- Workspace open and file read/write
-- Typed IPC bridge
-- Workspace path boundary validation
-- TypeScript strict type checking
-- Verification scripts
-- GitHub Actions CI, scheduled CI, release workflow
-- Dependabot and npm lockfile update workflow
-- Development, architecture, security, testing, and release documentation
+- Workspace を開く操作とファイルの読み書き
+- 型付き IPC ブリッジ
+- Workspace パスの境界検証
+- TypeScript の strict 型チェック
+- 検証スクリプト
+- GitHub Actions CI、スケジュール CI、リリースワークフロー
+- Dependabot と npm lockfile 更新ワークフロー
+- 開発、アーキテクチャ、セキュリティ、テスト、リリースのドキュメント
 
-## Verification
+## 検証
 
 - `npm ci --ignore-scripts`
 - `npm run typecheck`
@@ -26,6 +26,6 @@ Touwa Editor Foundation の初回リリースです。将来のコード編集�
 - `npm run build`
 - `npm run package`
 
-## Known Issues
+## 既知の問題
 
 Terminal、Git、Language Server、Debugger、Extensions、再帰 Explorer、複数 Tabs は未実装です。詳細は [KNOWN_ISSUES.md](KNOWN_ISSUES.md) を参照してください。

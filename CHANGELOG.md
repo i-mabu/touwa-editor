@@ -1,10 +1,10 @@
-# Changelog
+# 変更履歴
 
 このファイルは、利用者に影響する変更を Semantic Versioning と対応付けて記録します。Unreleased の変更は次回 Release 前に分類し、実装されていない内容を Added として記載しません。
 
 ## [Unreleased]
 
-### Added
+### 追加
 
 - Phase 3 の共通基盤として、外部プロセス実行サービス（`src/main/process/process-runner.ts`）を追加しました。`shell: false`、argv 分離、cwd 検証、timeout（SIGTERM→SIGKILL）、stdout / stderr の分離捕捉と上限、exit code の返却を共通化しています。
 - Source Control パネル（Git、Ctrl+Shift+G／アクティビティバーの GT）を追加しました。ブランチと ahead/behind、ステージ済み／変更／未追跡／競合の一覧、最近のコミット（最大100件）を表示し、変更エントリのクリックでファイルを開けます。読み取り専用です。
@@ -34,11 +34,11 @@
 - タブのミドルクリックで閉じる、「Open Folder」へのボタン名変更、ショートカット一覧（`docs/KEYBOARD_SHORTCUTS.md`）
 - `npm test` に VS Code UX のテスト4件を追加（計13件）
 
-### Fixed
+### 修正
 
 - デバッガで、再開直後にプログラムが即終了すると、終了処理のための接続クローズと制御リクエスト（再開・ステップ実行など）の応答が競合し、「Debugger connection closed.」がエラーとして伝播する場合があった問題。終了が始まった後のクローズ由来の失敗は正常な終了として扱います（変数取得も空で応答）。テストの間欠失敗として検出し、実装側の競合を修正しました。
 
-### Changed
+### 変更
 
 - `file.read` / `file.write` が内容とともに mtime・サイズ・SHA-256 ハッシュを持つスナップショットを返すようになりました。
 - `file.write` は保存時に Atomic Write（一時ファイル＋rename）を行います。
@@ -47,7 +47,7 @@
 - 必要な Node.js を 22.18 以降に明示しました（`engines`）。`npm test` は TypeScript ソースを直接実行するため、型ストリッピングが標準有効なバージョンが必要です。CI の Node も 22.18.0 に更新し、`npm test` を CI／Scheduled CI／Release の各 workflow で実行するようになりました。
 - ディレクトリ一覧の stat を並列化し、リンク先の種類でソートするようになりました。
 
-### Fixed
+### 修正
 
 - Workspace のすべて置換が検索結果の上限（500件）で打ち切られ、上限を超えたファイルが未置換のまま `skipped` にも入らなかった問題。置換は対象ファイルを直接走査し、実際の置換件数を数えるようになりました。
 - 大文字小文字を区別しないプレーンテキスト置換で、置換文字列中の `$&` や `$5` が正規表現の置換パターンとして解釈されていた問題（プレーンテキスト置換は常にリテラルとして扱い、正規表現モードでのみ置換パターンを有効にしました）。
@@ -67,14 +67,14 @@
 - Command Palette／Quick Open で候補が空のとき矢印キーで選択位置が -1 になる問題。
 - `npm test` の件数など、ドキュメントの記載と実態のずれ（TESTING.md、IPC_API の `maxMatches`）。
 
-### Security
+### セキュリティ
 
 - 検索・置換・一覧の各 IPC 引数を Main で実行時検証し、検索対象から `.git` / `node_modules` などを除外します。保存時の競合チェックにより、外部で変更されたファイルを無言で上書きしません。
 - Renderer の画面遷移（`will-navigate`）を自アプリのページ以外へ行えないよう制限しました。
 
 ## [0.1.0] - 2026-10-06
 
-### Added
+### 追加
 
 - Electron / React / TypeScript / Monaco Editor の Foundation
 - Renderer、Preload、Main の責務分離
@@ -85,7 +85,7 @@
 - Dependabot と npm lockfile update workflow
 - Architecture、Security、Testing、Development、Release 文書
 
-### Security
+### セキュリティ
 
 - `contextIsolation: true`
 - `nodeIntegration: false`
@@ -93,7 +93,7 @@
 - Main 側での IPC 引数検証
 - `path.resolve` と `realpath` による Workspace 境界検証
 
-### Known limitations
+### 既知の制約
 
 - Terminal、Git、Language Server、Debugger、Extensions は未実装です。
 - Explorer は Workspace 直下のみを表示します。

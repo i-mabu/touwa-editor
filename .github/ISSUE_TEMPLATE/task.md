@@ -1,25 +1,25 @@
 ---
-name: Task
-about: Track engineering work
+name: タスク
+about: 開発作業を記録する
 title: "task: "
 labels: task
 ---
 
-## Background
+## 背景
 
-## Problem
+## 問題
 
-## Objective
+## 目的
 
-## Expected result
+## 期待する結果
 
-## Scope
+## 対象範囲
 
-## Non-scope
+## 対象外
 
-## Dependencies
+## 依存関係
 
-## Verification
+## 検証
 
 ```bash
 npm run typecheck
@@ -27,9 +27,9 @@ npm run verify:all
 npm run build
 ```
 
-## Definition of done
+## 完了の定義
 
-- [ ] Implementation complete
-- [ ] Tests or verification updated
-- [ ] Documentation updated
-- [ ] Known limitations recorded
+- [ ] 実装が完了している
+- [ ] テストまたは検証が更新されている
+- [ ] ドキュメントが更新されている
+- [ ] 既知の制約が記録されている

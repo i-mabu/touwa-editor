@@ -1,27 +1,27 @@
 ---
-name: Feature request
-about: Propose an improvement
+name: 機能要望
+about: 改善案を提案する
 title: "feat: "
 labels: enhancement
 ---
 
-## Background
+## 背景
 
-## Problem or opportunity
+## 問題または機会
 
-## Goal
+## 目標
 
-## Expected result
+## 期待する結果
 
-## Scope
+## 対象範囲
 
-## Non-scope
+## 対象外
 
-## Security and architecture impact
+## セキュリティとアーキテクチャへの影響
 
-## Verification plan
+## 検証計画
 
-## Acceptance criteria
+## 受け入れ基準
 
 - [ ]
 - [ ]

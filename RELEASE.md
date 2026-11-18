@@ -1,4 +1,4 @@
-# Release Guide
+# リリースガイド
 
 Touwa Editor は Semantic Versioning を使用します。
 
@@ -8,7 +8,7 @@ MAJOR.MINOR.PATCH
 
 MAJOR は互換性を壊す変更、MINOR は後方互換の新機能、PATCH はバグ修正と小規模改善です。Git tag は `vMAJOR.MINOR.PATCH` 形式です。
 
-## Release preparation
+## リリース準備
 
 1. Issue と変更範囲を確認します。
 2. CHANGELOG と Release Notes を更新します。
@@ -24,7 +24,7 @@ npm run build
 npm run package
 ```
 
-## Version update
+## バージョン更新
 
 ```bash
 npm version patch --no-git-tag-version
@@ -34,7 +34,7 @@ node -p "require('./package.json').version"
 
 version 更新後は `package-lock.json` も確認し、意図しない依存差分がないことを確認します。
 
-## GitHub Actions release
+## GitHub Actions によるリリース
 
 Release workflow は `v*.*.*` tag の push で起動します。
 
@@ -47,9 +47,9 @@ git push origin v0.1.1
 
 Workflow は Checkout、Node.js 設定、version 検証、`npm ci`、typecheck、verification、Build、Package、SHA256 checksum、GitHub Release 作成を順に実行します。Release 作成には GitHub Actions の token を利用し、ローカルから直接公開 Release を作成しません。
 
-## Release checklist
+## リリースチェックリスト
 
-| Check                     | Status |
+| 確認項目                  | 状態   |
 | ------------------------- | ------ |
 | 起動できる                | □      |
 | 基本 Workspace 操作が動く | □      |
@@ -62,6 +62,6 @@ Workflow は Checkout、Node.js 設定、version 検証、`npm ci`、typecheck�
 | 重大な既知問題の確認      | □      |
 | CI 成功                   | □      |
 
-## Rollback and patch policy
+## ロールバックとパッチ方針
 
 公開済み Release の履歴を変更して問題を隠しません。重大なバグは新しい PATCH version で修正し、Known Issues、CHANGELOG、Release Notes に影響を明記します。

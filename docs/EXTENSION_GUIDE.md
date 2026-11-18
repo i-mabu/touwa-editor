@@ -1,10 +1,10 @@
-# Extension Development Guide
+# 拡張機能開発ガイド
 
-## Status
+## ステータス
 
 Extensions は現在未実装です。この文書は、将来の Extension Host を安全に設計するための方針です。
 
-## Planned model
+## 計画中のモデル
 
 Extension Host は Renderer と分離したプロセスで動作させ、Extension の権限を capability として明示します。Workspace、Process、Network へのアクセスは個別に許可し、manifest は Main 側で検証します。
 
@@ -18,19 +18,19 @@ Extension Host は Renderer と分離したプロセスで動作させ、Extensi
 
 Renderer に Extension の Node.js 権限を渡さず、Extension Host と Main の間にも検証済みの protocol を置きます。
 
-## Lifecycle
+## ライフサイクル
 
 Extension は `discover -> validate -> enable -> activate -> deactivate` の lifecycle を持つ予定です。activate の timeout、異常終了時の cleanup、disable 後の権限撤回を必須にします。
 
-## Compatibility
+## 互換性
 
 Extension API は Semantic Versioning に従います。既存 API を破壊する変更は MAJOR、後方互換の追加は MINOR、バグ修正は PATCH として扱います。
 
-## Security checklist
+## セキュリティチェックリスト
 
-| Check        | Requirement                                    |
+| チェック項目 | 要件                                           |
 | ------------ | ---------------------------------------------- |
-| Manifest     | schema validation と identifier / version 検証 |
+| Manifest     | スキーマ検証と identifier / version の検証     |
 | Distribution | 信頼できる配布元と署名方針                     |
 | Process      | lifecycle、timeout、crash cleanup              |
 | Permissions  | capability の最小化と明示的な拒否              |

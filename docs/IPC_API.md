@@ -1,10 +1,10 @@
-# IPC API Reference
+# IPC API リファレンス
 
-## Boundary
+## 境界
 
 Renderer は Node.js API を直接利用しません。Preload が `window.touwa` として最小限の API を公開し、Main が IPC の実装と入力検証を担当します。
 
-## Shared types
+## 共通の型
 
 ```ts
 export type FileEntry = {
@@ -161,7 +161,7 @@ Renderer が所有するドキュメントテキストを言語サーバーへ�
 
 カーソル位置（1-based）に対する補完候補・Hover・Signature Help を言語サーバーへ問い合わせ、Renderer が扱える形に変換して返します。位置は Main で検証し（行 1–1,000,000、列 1–100,000 の整数）、対象は同期済みのドキュメントのみです（未オープンの場合は空の結果を返します）。補完候補は最大200件で、ドキュメント文字列は markdown に平坦化します。Renderer はリクエスト前に保留中の変更同期を即時送信し、サーバー側のテキストを最新に揃えます。
 
-## Debugger
+## デバッガ
 
 ### `debug.start(script, breakpoints)` / `debug.stop()` / `debug.resume()` / `debug.stepOver()` / `debug.stepInto()` / `debug.stepOut()` / `debug.pause()`
 
@@ -183,11 +183,11 @@ Node.js ファイル（.js / .mjs / .cjs）を `node --inspect-brk` で起動し
 
 `get` は `{ effective, errors: { user, workspace } }` を返します。層はスキーマ既定値 < ユーザー設定（アプリデータ内の `settings.json`）< ワークスペース `.touwa/settings.json` で、取得のたびに読み直します。各層は全項目検証され、不正な層は理由を `errors` に残して丸ごと無効になります。スキーマで `scope: "user"` のキーはワークスペース層から除外されます。`set` はキーと値を Main で検証してユーザー層へだけ書き込み（テンポラリ＋rename の原子的書き込み）、新しい実効設定を返します。壊れた既存のユーザー設定ファイルは上書きせずエラーにします（書式は `docs/SETTINGS.md`）。
 
-## Error policy
+## エラー方針
 
 Renderer にはユーザーが対処できるメッセージを返し、内部パスや秘密情報を不要に露出させません。Main では原因を開発者向けログに記録しますが、token、password、環境変数の値は記録しません。
 
-## Adding a new channel
+## 新しいチャネルの追加
 
 1. Preload に型付きメソッドを追加する。
 2. Main の `registerIpc` に明示的な channel を登録する。

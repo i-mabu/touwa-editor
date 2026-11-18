@@ -1,14 +1,14 @@
-# Roadmap
+# ロードマップ
 
 Roadmap は、機能数を増やすことよりも、既存のセキュリティ境界と検証可能性を維持しながら段階的に拡張するための計画です。各 Phase の機能は、完了条件と回帰検証を満たすまで完成扱いにしません。
 
-## Phase 1 — Foundation
+## Phase 1 — 基盤
 
 **Status: ✅ 基盤実装済み**
 
 Electron、React、TypeScript、Monaco、Preload、型付き IPC、Workspace の基本読み書き、Security verification、CI/CD、文書を提供します。完了条件は `npm ci`、`npm run typecheck`、`npm run verify:all`、`npm run build`、`npm run package` が通過し、Windows CI で主要フローが確認できることです。
 
-## Phase 2 — Core Editor
+## Phase 2 — コアエディタ
 
 **Status: ✅ 実装済み**
 
@@ -20,7 +20,7 @@ Explorer selection -> model registry -> tab state -> editor group layout
 
 大きな Workspace の性能、ファイル Watcher、Atomic Write を設計してから実装しました。Watcher は Windows / macOS では再帰監視、Linux ではルート＋直下ディレクトリ監視＋開いているタブの `file:stat` ポーリング（5秒）で補完します。保存は同一ディレクトリの一時ファイルへの書き込み＋rename による Atomic Write で、開いた時点の mtime と異なる場合は上書きを拒否します。検索は最大2000ファイル／500件、1ファイル1MBまで、`.git` / `node_modules` / `out` / `dist` / `release` と隠しファイルを除外します。
 
-## Phase 3 — Developer Tools
+## Phase 3 — 開発者ツール
 
 **Status: ✅ 完了**
 
@@ -49,7 +49,7 @@ Language Server、Completion、Hover、Signature Help、Diagnostics、Git、Inte
 
 - 外部 DAP アダプタ: `.touwa/debug.json` に登録した Debug Adapter Protocol サーバーで他言語をデバッグできます（`src/main/debug/dap-client.ts` / `dap-debug-service.ts` / `debug-config.ts`）。対象ファイルの拡張子で内蔵 Node.js デバッガと自動で切り替え、ブレークポイント／ステップ実行／コールスタック／変数表示は同じ Debug パネルで操作します。起動引数は program / cwd / stopOnEntry の汎用セットのみで、アダプタの逆リクエストには対応しません。書式は `docs/DEBUGGING.md`。
 
-## Phase 4 — Extensibility
+## Phase 4 — 拡張性
 
 **Status: ⏳ 一部実装（拡張の検出・マニフェスト検証、Settings 基盤まで）**
 
@@ -61,12 +61,12 @@ Settings、Themes、Extension Host、Extension manifest、capability-based permi
 
 未実装: Themes（`workbench.colorTheme` の実効化を含む）、Extension Host（拡張の実行）、API versioning。
 
-## Phase 5 — Quality
+## Phase 5 — 品質
 
 **Status: ⏳ 計画中**
 
 Regression tests、Security hardening、Performance profiling、Release automation、Dependency automation、Crash diagnostics を強化します。
 
-## Prioritization rules
+## 優先順位のルール
 
 優先順位は Security、Stability、Correctness、Maintainability、Testability、Extensibility、UX、新機能の順です。各機能は、既存の境界を曖昧にする場合は延期し、まず共通 service または verification の改善を行います。

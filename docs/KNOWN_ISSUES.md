@@ -1,8 +1,8 @@
-# Known Issues
+# 既知の問題
 
-## Foundation limitations
+## 基盤の制約
 
-| Area            | Current limitation                                                                                                                                                                                                                                                                                                                                | Workaround / next step                                                    |
+| 領域            | 現在の制約                                                                                                                                                                                                                                                                                                                                        | 回避策／次のステップ                                                      |
 | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
 | Editor Groups   | 最大2グループまで                                                                                                                                                                                                                                                                                                                                 | 3グループ以上は Phase 3 以降で検討                                        |
 | Watcher         | Linux ではルート＋直下ディレクトリのみ監視                                                                                                                                                                                                                                                                                                        | 開いているタブは5秒ごとの stat 確認で補完し、保存時の競合検知が最終防衛線 |
@@ -12,18 +12,18 @@
 | Developer tools | Git はステータス／ログ表示、ステージング／コミット、フェッチ／プル（FF のみ）／プッシュ対応。診断は tsc の手動再チェックに加え、開いている TS/JS ファイルへの言語サーバー常駐診断（LSP）に対応。LSP は補完・Hover・Signature Help も提供しますが（TS/JS では Monaco 標準の同機能を無効化）、ワークスペースを切り替えると旧ワークスペースの言語サーバープロセスがアプリ終了まで残ります。
 デバッガの内蔵対応は Node.js（.js / .mjs / .cjs）のみで、TypeScript の直接デバッグには未対応です。他言語は .touwa/debug.json で外部 DAP アダプタを登録すればデバッグできますが、起動引数は汎用セット（program / cwd / stopOnEntry）のみで、アダプタの逆リクエスト（runInTerminal 等）には未対応です。内蔵デバッガの実行には Node.js のインストールが必要で、セッションは同時に1つだけです。Tasks は実行のみ（停止ボタンなし、120秒タイムアウト）。Terminal は PTY 接続（node-pty を読み込めない環境ではパイプ接続にフォールバックし、その場合は TTY が必要な対話処理が動作しない）。全画面 TUI の描画には未対応。Extensions は検出・マニフェスト検証と一覧表示のみで、拡張コードの実行（Extension Host）には未対応。`workbench.colorTheme` は設定として保存できますが、テーマ切り替えは未実装（常にダークテーマ相当の表示） | Roadmap の Phase 3 / 4 を参照                                             |
 
-## Resolved in Phase 2
+## Phase 2 で解決済み
 
 - Explorer は再帰ツリー（遅延読み込み）になりました。
 - 複数タブ、Editor Groups、未保存変更表示、競合検知、Atomic Write を実装しました。
 - Workspace Search / Replace と Monaco の Find / Replace、Multi Cursor を実装しました。
 
-## Verification limitations
+## 検証の制約
 
 Linux Sandbox で TypeScript、静的検証、Build、Linux unpacked package を確認済みです。Windows 実機での GUI 起動、NSIS Installer、Windows 固有の `.cmd` / `.exe` 動作は未検証です。
 
 npm audit では依存関係由来の脆弱性警告が残る場合があります。依存更新時は互換性と Electron のサポート範囲を確認し、無条件に `npm audit fix --force` を適用しません。
 
-## Reporting
+## 報告方法
 
 再現可能な問題は GitHub Issue Template を利用してください。セキュリティ問題は公開 Issue ではなく Private Security Advisory で報告してください。

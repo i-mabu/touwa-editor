@@ -1,22 +1,22 @@
-# Testing Guide
+# テストガイド
 
 Touwa Editor のテストは、型、静的な境界検証、Build、Package を段階的に確認します。各段階は後続の失敗原因を切り分けやすくするため、独立して実行可能にします。
 
-## Test commands
+## テストコマンド
 
-| Command                    | Purpose                                                                                                                                          |
+| コマンド                   | 目的                                                                                                                                             |
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `npm run typecheck`        | TypeScript strict check                                                                                                                          |
-| `npm test`                 | Node test: workspace service / watcher と tab / group model、VS Code 風 UX（21件）。Node 22.18 以降が必要（TypeScript ソースを直接実行するため） |
-| `npm run verify:security`  | Electron security configuration check                                                                                                            |
-| `npm run verify:workspace` | Workspace boundary implementation check                                                                                                          |
-| `npm run verify:electron`  | Main / Preload / Renderer foundation check                                                                                                       |
+| `npm run typecheck`        | TypeScript の strict チェック                                                                                                                    |
+| `npm test`                 | Node テスト: workspace service / watcher と tab / group model、VS Code 風 UX（21件）。Node 22.18 以降が必要（TypeScript ソースを直接実行するため） |
+| `npm run verify:security`  | Electron のセキュリティ設定チェック                                                                                                              |
+| `npm run verify:workspace` | Workspace 境界の実装チェック                                                                                                                     |
+| `npm run verify:electron`  | Main / Preload / Renderer 基盤チェック                                                                                                           |
 | `npm run verify:phase2`    | Phase 2（Tabs / Search / Watcher / Atomic Write）の静的検証                                                                                      |
 | `npm run verify:all`       | 上記 verification の一括実行                                                                                                                     |
-| `npm run build`            | Electron Vite production build                                                                                                                   |
-| `npm run package`          | electron-builder package smoke test                                                                                                              |
+| `npm run build`            | Electron Vite の production ビルド                                                                                                               |
+| `npm run package`          | electron-builder の package スモークテスト                                                                                                       |
 
-## Standard verification
+## 標準の検証手順
 
 ```bash
 npm ci
@@ -32,9 +32,9 @@ npm run build
 npm run package
 ```
 
-## Workspace security cases
+## Workspace セキュリティのケース
 
-| Case                       | Expected result |
+| ケース                     | 期待結果        |
 | -------------------------- | --------------- |
 | `src/index.ts` の読み込み  | 成功            |
 | `../outside.txt`           | 拒否            |
@@ -52,7 +52,7 @@ if (candidate !== root && !candidate.startsWith(`${root}${path.sep}`)) {
 }
 ```
 
-## Manual smoke test
+## 手動スモークテスト
 
 1. アプリケーションが起動する。
 2. Open Workspace でディレクトリを選択できる。
@@ -63,9 +63,9 @@ if (candidate !== root && !candidate.startsWith(`${root}${path.sep}`)) {
 7. 検索パネルで Workspace 検索ができ、結果クリックで該当行に移動できる。
 8. Renderer から Node.js API を直接利用していない。
 
-## Phase 2 cases
+## Phase 2 のケース
 
-| Case                               | Expected result                                                           |
+| ケース                             | 期待結果                                                                  |
 | ---------------------------------- | ------------------------------------------------------------------------- |
 | 2ファイルをタブで開く              | 両方のタブが表示され、切り替えできる                                      |
 | Split Right                        | アクティブタブが右グループに移動する                                      |
@@ -80,6 +80,6 @@ if (candidate !== root && !candidate.startsWith(`${root}${path.sep}`)) {
 
 Windows 実機では、`.cmd` / `.exe` の扱い、Installer、権限差、パス区切り文字も確認します。
 
-## Failure reporting
+## 失敗時の報告
 
 失敗時は、実行コマンド、OS、Node.js / npm バージョン、期待結果、実際のエラー、再現手順を記録します。ログに秘密情報や個人情報を含めないでください。

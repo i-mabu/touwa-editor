@@ -1,31 +1,31 @@
-# Touwa Editor User Guide
+# Touwa Editor ユーザーガイド
 
-## Overview
+## 概要
 
 Touwa Editor は、Workspace を開いてソースコードを編集・保存するための Electron ベースのコードエディタです。
 
-## Start the editor
+## エディタの起動
 
 ```bash
 npm ci
 npm run dev
 ```
 
-配布用 Build は次のコマンドで作成できます。
+配布用ビルドは次のコマンドで作成できます。
 
 ```bash
 npm run build
 npm run package
 ```
 
-## Open a Folder
+## フォルダを開く
 
 1. **Open Folder** を選択します。
 2. フォルダとして使用するディレクトリを選択します。
 3. Explorer にファイルツリーが表示されます。ディレクトリはクリックで展開します。
 4. ファイルを選択するとタブで開きます。同じファイルをもう一度選ぶと、既存のタブに移動します。
 
-## Command Palette and Quick Open
+## コマンドパレットと Quick Open
 
 VS Code と同じ操作でファイルやコマンドに素早くアクセスできます。
 
@@ -40,7 +40,7 @@ VS Code と同じ操作でファイルやコマンドに素早くアクセスで
 - ファイルやフォルダを右クリックすると、New File／New Folder／Rename／Delete が出ます。フォルダの削除は中身ごと削除するため、確認が出ます。
 - 名前変更したファイルを開いているタブは、新しいパスに追従します。削除したファイルのタブは閉じます。
 
-## Tabs and editor groups
+## タブとエディタグループ
 
 - 複数のファイルをタブで開けます。タブの × またはミドルクリック、Ctrl+W で閉じます。未保存の変更があるタブを閉じると確認が出ます。
 - **Ctrl+Tab**／**Ctrl+Shift+Tab** でタブを切り替えます。
@@ -48,7 +48,7 @@ VS Code と同じ操作でファイルやコマンドに素早くアクセスで
 - **Ctrl+B** でサイドバーの表示／非表示を切り替えます。**Ctrl+Shift+E** で Explorer、**Ctrl+Shift+F** で Search を表示します。
 - ステータスバーにカーソル位置と言語、未保存ファイル数が表示されます。
 
-## Edit and save
+## 編集と保存
 
 エディタ内で編集し、**Save**（Ctrl+S）を押すと現在のファイルへ保存します。**Save All** ですべての未保存タブを保存します。Workspace を開いていない状態では保存できません。
 
@@ -72,7 +72,7 @@ VS Code と同じ操作でファイルやコマンドに素早くアクセスで
 - **すべて置換** は、検索に一致したすべての箇所を置換します。実行前に確認が出ます。
 - エディタ内の検索・置換は Ctrl+F / Ctrl+H、複数カーソルは Ctrl+クリック（macOS では Cmd+クリック）です。
 
-## Current limitations
+## 現在の制約
 
 - Editor Groups は最大2グループまでです。
 - Terminal、Git、検索以外の開発ツールは後続フェーズです。

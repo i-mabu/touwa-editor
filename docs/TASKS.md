@@ -1,4 +1,4 @@
-# Tasks
+# タスク
 
 ワークスペースの `.touwa/tasks.json` にタスクを定義すると、Tasks パネル（アクティビティバーの TK、またはコマンドパレットの「View: Show Tasks」）から実行できます。
 

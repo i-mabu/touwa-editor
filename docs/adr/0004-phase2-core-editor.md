@@ -1,10 +1,10 @@
-# ADR 0004: Phase 2 Core Editor
+# ADR 0004: Phase 2 コアエディタ
 
-## Context
+## 背景
 
 Phase 1 は単一ファイル表示と Workspace 直下の一覧だけで、日常の編集にはタブ、再帰 Explorer、検索、未保存・競合の扱いが欠けていました。ROADMAP の Phase 2 は、既存のセキュリティ境界と検証可能性を維持したままこれらを追加する計画でした。
 
-## Decision
+## 決定
 
 - **Tabs / Editor Groups**: タブとグループの状態遷移を `src/renderer/state/tabs.ts` の純粋関数に分離し、React コンポーネントから切り離して `node --test` で検証できるようにします。グループは最大2つまでとします。
 - **Recursive Explorer**: ディレクトリを `workspace:listDir` で遅延読み込みします。大きな Workspace を開いた瞬間に全走査しないためです。
@@ -13,14 +13,14 @@ Phase 1 は単一ファイル表示と Workspace 直下の一覧だけで、日�
 - **Snapshot**: `file.read` / `file.write` は内容と mtime・サイズ・SHA-256 ハッシュを返します。mtime だけでは同一時刻の書き換えを見逃すため、ハッシュも比較します。
 - **Multi Cursor / Find**: Monaco 標準機能を使い、自前エディタは実装しません。`multiCursorModifier: 'ctrlCmd'` を有効化します。
 
-## Alternatives
+## 代替案
 
 - タブ状態を App.tsx 内に残す: 検証が GUI 経由だけになり、回帰検出が遅れるため却下。
 - Watcher だけで外部変更を検知する: Linux の `fs.watch` は再帰非対応で、見逃しがあり得るため却下。定期 stat 確認と保存時チェックを併用します。
 - 保存時に常に上書きする: 外部変更を無言で消すため却下。明示的な上書き操作のときだけ競合チェックを外します。
 - 検索を Renderer で行う: Renderer にファイル走査権限を与えることになり、境界を崩すため却下。
 
-## Consequences
+## 結果
 
 - タブ／グループの振る舞いは `npm test` で回帰検証できます。
 - 保存の失敗が「競合」としてユーザーに伝わり、再読込か上書きかを選べます。

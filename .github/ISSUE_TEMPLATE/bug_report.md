@@ -1,35 +1,35 @@
 ---
-name: Bug report
-about: Report a reproducible problem
+name: 不具合報告
+about: 再現できる問題を報告する
 title: "bug: "
 labels: bug
 ---
 
-## Background
+## 背景
 
-## Problem
+## 問題
 
-## Steps to reproduce
+## 再現手順
 
 1.
 2.
 3.
 
-## Expected result
+## 期待する結果
 
-## Actual result
+## 実際の結果
 
-## Verification environment
+## 検証環境
 
 - OS:
 - Node.js:
 - npm:
-- Touwa Editor version / commit:
+- Touwa Editor のバージョン / コミット:
 
-## Logs and screenshots
+## ログとスクリーンショット
 
 <!-- Secrets、tokens、個人情報を削除して添付してください。 -->
 
-## Security impact
+## セキュリティへの影響
 
 <!-- セキュリティ影響が疑われる場合、詳細は公開せず Private Security Advisory を利用してください。 -->

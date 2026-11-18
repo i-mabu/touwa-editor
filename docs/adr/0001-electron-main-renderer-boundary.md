@@ -1,17 +1,17 @@
-# ADR 0001: Electron Main / Renderer Boundary
+# ADR 0001: Electron Main／Renderer 境界
 
-## Context
+## 背景
 
-Code editor features need filesystem and process access, while editor UI must remain unprivileged.
+コードエディタの機能にはファイルシステムやプロセスへのアクセスが必要ですが、エディタ UI は権限を持たない状態に保たなければなりません。
 
-## Decision
+## 決定
 
-Use context isolation, disabled renderer Node integration, a minimal Preload bridge, and explicit IPC handlers with Main-side validation.
+コンテキスト分離を使い、Renderer の Node 統合を無効化し、最小限の Preload ブリッジと、Main 側で検証する明示的な IPC ハンドラを用います。
 
-## Alternatives
+## 代替案
 
-Expose Node APIs directly to Renderer; rejected due to larger attack surface.
+Node API を Renderer に直接公開する案は、攻撃対象領域が大きくなるため却下しました。
 
-## Consequences
+## 結果
 
-The boundary is safer and testable, at the cost of adding typed IPC methods for every capability.
+境界はより安全でテスト可能になりますが、機能ごとに型付きの IPC メソッドを追加するコストがかかります。
