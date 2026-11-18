@@ -165,7 +165,7 @@ Renderer が所有するドキュメントテキストを言語サーバーへ�
 
 ### `debug.start(script, breakpoints)` / `debug.stop()` / `debug.resume()` / `debug.stepOver()` / `debug.stepInto()` / `debug.stepOut()` / `debug.pause()`
 
-Node.js ファイル（.js / .mjs / .cjs）を `node --inspect-brk` で起動し、V8 Inspector（CDP）経由で制御します。セッションは同時に1つだけで、開始したウィンドウが所有します（他のウィンドウからの制御は拒否し、ウィンドウを閉じると停止します）。状態は `debug:state` イベント（`running` / `paused`（フレーム付き）/ `terminated`）、対象プロセスの出力は `debug:output` イベントで届きます。プログラム終了後、Node がデバッガの切断待ちになるため、Main が接続を閉じてプロセスを終了させます。
+Node.js ファイル（.js / .mjs / .cjs）を `node --inspect-brk` で起動し、V8 Inspector（CDP）経由で制御します。対象ファイルの拡張子が `.touwa/debug.json` に登録された外部 DAP アダプタに一致する場合は、そのアダプタを起動して Debug Adapter Protocol で制御します（書式は `docs/DEBUGGING.md`）。セッションは同時に1つだけで、開始したウィンドウが所有します（他のウィンドウからの制御は拒否し、ウィンドウを閉じると停止します）。状態は `debug:state` イベント（`running` / `paused`（フレーム付き）/ `terminated`）、対象プロセスの出力は `debug:output` イベントで届きます。プログラム終了後、Node がデバッガの切断待ちになるため、Main が接続を閉じてプロセスを終了させます。
 
 ### `debug.setBreakpoints(relativePath, lines)` / `debug.frameVariables(frameIndex)` / `debug.variables(variablesReference)`
 

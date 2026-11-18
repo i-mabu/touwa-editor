@@ -354,8 +354,8 @@ export default function DebugPanel({
           {output}
         </pre>
         <div className="git-hint">
-          Node.js ファイル（.js / .mjs / .cjs）のみ対応します。実行には
-          Node.js のインストールが必要です。
+          Node.js ファイル（.js / .mjs / .cjs）は内蔵デバッガ、その他の拡張子は
+          .touwa/debug.json に外部 DAP アダプタを設定するとデバッグできます。
         </div>
       </div>
     </aside>

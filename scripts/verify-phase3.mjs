@@ -149,6 +149,18 @@ const required = [
     ],
   ],
   [
+    "src/main/debug/dap-client.ts",
+    ["DapClient", "LspMessageParser", "request_seq"],
+  ],
+  [
+    "src/main/debug/dap-debug-service.ts",
+    ["DapDebugService", "dapDebugService", "configurationDone", "stackTrace"],
+  ],
+  [
+    "src/main/debug/debug-config.ts",
+    ["parseDebugConfig", "loadDebugConfig", "adapterForPath", ".touwa/debug.json"],
+  ],
+  [
     "src/renderer/components/DebugPanel.tsx",
     ["DebugPanel", "CALL STACK", "VARIABLES", "BREAKPOINTS", "onFrameVariables"],
   ],

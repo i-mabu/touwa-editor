@@ -72,6 +72,16 @@ import {
   PtyManager,
   resolveWindowsExecutable,
 } from "../src/main/process/pty-manager.ts";
+import {
+  adapterForPath,
+  loadDebugConfig,
+  parseDebugConfig,
+} from "../src/main/debug/debug-config.ts";
+import {
+  DapDebugService,
+  mapDapVariable,
+  sourcePathToRelative,
+} from "../src/main/debug/dap-debug-service.ts";
 
 const execFileAsync = promisify(execFile);
 
@@ -1106,6 +1116,174 @@ test("DebugService runs a real Node program with breakpoints and variables", asy
     );
     assert.ok(output.includes("sum=3"));
     assert.equal(service.running, false);
+  } finally {
+    await service.dispose();
+  }
+});
+
+test("debug.json config parses, validates and matches by extension", async () => {
+  const adapters = parseDebugConfig(
+    JSON.stringify({
+      adapters: [
+        {
+          id: "python",
+          command: "python",
+          args: ["-m", "debugpy.adapter"],
+          extensions: [".PY", ".pyw"],
+        },
+      ],
+    }),
+  );
+  assert.equal(adapters[0].extensions[0], ".py");
+  assert.equal(adapterForPath(adapters, "src/main.py")?.id, "python");
+  assert.equal(adapterForPath(adapters, "src/main.js"), null);
+  assert.throws(() => parseDebugConfig("not json"), /JSON/);
+  assert.throws(
+    () =>
+      parseDebugConfig(
+        JSON.stringify({
+          adapters: [
+            { id: "x", command: "C:\\tools\\a.exe", args: [], extensions: [".py"] },
+          ],
+        }),
+      ),
+    /command/,
+  );
+  assert.throws(
+    () =>
+      parseDebugConfig(
+        JSON.stringify({
+          adapters: [
+            { id: "x", command: "python", args: [], extensions: ["py"] },
+          ],
+        }),
+      ),
+    /extensions/,
+  );
+  const root = await mkdtemp(path.join(tmpdir(), "touwa-phase3-dbgcfg-"));
+  assert.deepEqual(await loadDebugConfig(root), { adapters: [], error: null });
+  await mkdir(path.join(root, ".touwa"), { recursive: true });
+  await writeFile(path.join(root, ".touwa", "debug.json"), "{broken");
+  const broken = await loadDebugConfig(root);
+  assert.equal(broken.adapters.length, 0);
+  assert.ok(broken.error !== null);
+
+  const wsRoot = path.join(tmpdir(), "ws");
+  assert.equal(
+    sourcePathToRelative(wsRoot, path.join(wsRoot, "a", "b.py")),
+    "a/b.py",
+  );
+  assert.equal(sourcePathToRelative(wsRoot, "/elsewhere/b.py"), "");
+  assert.deepEqual(
+    mapDapVariable({ name: "x", value: "1", type: "int", variablesReference: 5 }),
+    { name: "x", value: "1", type: "int", variablesReference: 5 },
+  );
+  assert.equal(mapDapVariable({ value: "1" }), null);
+});
+
+test("DapDebugService drives a fake adapter through a full session", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "touwa-phase3-dap-"));
+  await writeFile(path.join(root, "target.py"), "print('hello')\n");
+  const adapterScript = path.join(root, "fake-adapter.mjs");
+  await writeFile(
+    adapterScript,
+    `
+let buf = Buffer.alloc(0);
+let program = "";
+let bpLine = 1;
+function send(msg) {
+  const body = JSON.stringify(msg);
+  process.stdout.write("Content-Length: " + Buffer.byteLength(body) + "\\r\\n\\r\\n" + body);
+}
+function respond(req, body) {
+  send({ seq: 0, type: "response", request_seq: req.seq, command: req.command, success: true, body: body ?? {} });
+}
+process.stdin.on("data", (chunk) => {
+  buf = Buffer.concat([buf, chunk]);
+  for (;;) {
+    const end = buf.indexOf("\\r\\n\\r\\n");
+    if (end === -1) break;
+    const len = Number(/Content-Length: (\\d+)/.exec(buf.subarray(0, end).toString())[1]);
+    if (buf.length < end + 4 + len) break;
+    const msg = JSON.parse(buf.subarray(end + 4, end + 4 + len).toString());
+    buf = buf.subarray(end + 4 + len);
+    if (msg.type !== "request") continue;
+    const args = msg.arguments ?? {};
+    if (msg.command === "initialize") respond(msg, { supportsConfigurationDoneRequest: true });
+    else if (msg.command === "launch") {
+      program = args.program ?? "";
+      respond(msg);
+      send({ seq: 0, type: "event", event: "initialized", body: {} });
+    } else if (msg.command === "setBreakpoints") {
+      bpLine = args.breakpoints?.[0]?.line ?? 1;
+      respond(msg, { breakpoints: [{ verified: true, line: bpLine }] });
+    } else if (msg.command === "configurationDone") {
+      respond(msg);
+      send({ seq: 0, type: "event", event: "stopped", body: { reason: "breakpoint", threadId: 1 } });
+    } else if (msg.command === "threads") {
+      respond(msg, { threads: [{ id: 1, name: "main" }] });
+    } else if (msg.command === "stackTrace") {
+      respond(msg, { stackFrames: [{ id: 100, name: "main", source: { path: program }, line: bpLine, column: 1 }], totalFrames: 1 });
+    } else if (msg.command === "scopes") {
+      respond(msg, { scopes: [{ name: "Locals", variablesReference: 1000 }] });
+    } else if (msg.command === "variables") {
+      if (args.variablesReference === 1000) {
+        respond(msg, { variables: [
+          { name: "answer", value: "42", type: "number", variablesReference: 0 },
+          { name: "obj", value: "Object", type: "object", variablesReference: 1001 },
+        ]});
+      } else {
+        respond(msg, { variables: [{ name: "deep", value: "x", type: "string", variablesReference: 0 }] });
+      }
+    } else if (msg.command === "continue") {
+      respond(msg, { allThreadsContinued: true });
+      send({ seq: 0, type: "event", event: "terminated", body: {} });
+    } else if (msg.command === "disconnect") {
+      respond(msg);
+    } else {
+      respond(msg);
+    }
+  }
+});
+`,
+  );
+  const adapter = {
+    id: "fake",
+    command: "node",
+    args: [adapterScript],
+    extensions: [".py"],
+  };
+  const service = new DapDebugService(new SessionManager());
+  const states = [];
+  try {
+    await service.start(
+      root,
+      adapter,
+      "target.py",
+      [{ relativePath: "target.py", line: 3 }],
+      {
+        onState: (state) => states.push(state),
+        onOutput: () => {},
+      },
+    );
+    await waitForAsync(() =>
+      states.some(
+        (s) =>
+          s.status === "paused" &&
+          s.frames?.[0]?.relativePath === "target.py" &&
+          s.frames?.[0]?.line === 3,
+      ),
+    );
+    const vars = await service.frameVariables(0);
+    assert.ok(vars.some((v) => v.name === "answer" && v.value === "42"));
+    const obj = vars.find((v) => v.name === "obj");
+    assert.ok(obj && obj.variablesReference === 1001);
+    const deep = await service.variables(1001);
+    assert.ok(deep.some((v) => v.name === "deep" && v.value === "x"));
+    await service.resume();
+    await waitForAsync(() =>
+      states.some((s) => s.status === "terminated"),
+    );
   } finally {
     await service.dispose();
   }

@@ -39,8 +39,13 @@ import {
 import { runDiagnostics } from "../diagnostics/diagnostics-service";
 import { loadTasks, runTask } from "../tasks/tasks-service";
 import { terminalService } from "../terminal/terminal-service";
-import { debugService } from "../debug/debug-service";
+import { debugService, isDebuggablePath } from "../debug/debug-service";
 import type { DebugBreakpoint } from "../debug/debug-service";
+import { dapDebugService } from "../debug/dap-debug-service";
+import {
+  adapterForPath,
+  loadDebugConfig,
+} from "../debug/debug-config";
 import { lspService } from "../lsp/lsp-service";
 
 const workspaceRoots = new Map<number, string>();
@@ -369,6 +374,20 @@ export function registerIpc(): void {
     }
     return value as number[];
   };
+  // The backend is chosen per start: a file whose extension has an
+  // external adapter in .touwa/debug.json goes to the DAP service,
+  // Node.js files go to the built-in CDP debugger.
+  let activeDebug: typeof debugService | typeof dapDebugService | null =
+    null;
+  const currentDebug = ():
+    | typeof debugService
+    | typeof dapDebugService
+    | null => {
+    if (activeDebug) return activeDebug;
+    if (dapDebugService.running) return dapDebugService;
+    if (debugService.running) return debugService;
+    return null;
+  };
   ipcMain.handle(
     "debug:start",
     async (event, script: unknown, breakpoints: unknown) => {
@@ -382,43 +401,63 @@ export function registerIpc(): void {
       sender.once("destroyed", () => {
         if (debugOwner === sender.id) {
           debugOwner = null;
+          activeDebug = null;
           void debugService.stop();
+          void dapDebugService.stop();
         }
       });
-      await debugService.start(root, script, parsed, {
-        onState: (state) => {
+      const hooks = {
+        onState: (state: { status: string }) => {
+          if (state.status === "terminated") activeDebug = null;
           if (!sender.isDestroyed()) sender.send("debug:state", state);
         },
-        onOutput: (stream, text) => {
+        onOutput: (stream: string, text: string) => {
           if (!sender.isDestroyed()) sender.send("debug:output", { stream, text });
         },
-      });
+      };
+      const config = await loadDebugConfig(root);
+      if (config.error) throw new Error(config.error);
+      const adapter = adapterForPath(config.adapters, script);
+      if (adapter) {
+        activeDebug = dapDebugService;
+        await dapDebugService.start(root, adapter, script, parsed, hooks);
+      } else if (isDebuggablePath(script)) {
+        activeDebug = debugService;
+        await debugService.start(root, script, parsed, hooks);
+      } else {
+        activeDebug = null;
+        throw new Error(
+          "No debugger is configured for this file type. Register an external adapter in .touwa/debug.json.",
+        );
+      }
     },
   );
   ipcMain.handle("debug:stop", async (event) => {
     requireDebugOwner(event);
     await debugService.stop();
+    await dapDebugService.stop();
+    activeDebug = null;
     debugOwner = null;
   });
   ipcMain.handle("debug:resume", async (event) => {
     requireDebugOwner(event);
-    await debugService.resume();
+    await currentDebug()?.resume();
   });
   ipcMain.handle("debug:stepOver", async (event) => {
     requireDebugOwner(event);
-    await debugService.stepOver();
+    await currentDebug()?.stepOver();
   });
   ipcMain.handle("debug:stepInto", async (event) => {
     requireDebugOwner(event);
-    await debugService.stepInto();
+    await currentDebug()?.stepInto();
   });
   ipcMain.handle("debug:stepOut", async (event) => {
     requireDebugOwner(event);
-    await debugService.stepOut();
+    await currentDebug()?.stepOut();
   });
   ipcMain.handle("debug:pause", async (event) => {
     requireDebugOwner(event);
-    await debugService.pause();
+    await currentDebug()?.pause();
   });
   ipcMain.handle(
     "debug:setBreakpoints",
@@ -432,7 +471,7 @@ export function registerIpc(): void {
       // full set is passed again at debug:start).
       if (debugOwner === null) return;
       requireDebugOwner(event);
-      await debugService.setBreakpoints(relativePath, parsedLines);
+      await currentDebug()?.setBreakpoints(relativePath, parsedLines);
     },
   );
   ipcMain.handle("debug:frameVariables", async (event, frameIndex: unknown) => {
@@ -444,14 +483,14 @@ export function registerIpc(): void {
     ) {
       throw new Error("Invalid frame.");
     }
-    return debugService.frameVariables(frameIndex as number);
+    return currentDebug()?.frameVariables(frameIndex as number) ?? [];
   });
   ipcMain.handle("debug:variables", async (event, ref: unknown) => {
     requireDebugOwner(event);
     if (!Number.isInteger(ref) || (ref as number) < 1) {
       throw new Error("Invalid variable reference.");
     }
-    return debugService.variables(ref as number);
+    return currentDebug()?.variables(ref as number) ?? [];
   });
   // Language server documents are synced from the renderer (it owns
   // the text). Diagnostics are forwarded to every window that has

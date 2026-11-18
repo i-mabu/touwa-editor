@@ -22,7 +22,7 @@ Explorer selection -> model registry -> tab state -> editor group layout
 
 ## Phase 3 — Developer Tools
 
-**Status: ✅ 実装済み（外部 DAP アダプタの接続を除く）**
+**Status: ✅ 完了**
 
 Language Server、Completion、Hover、Signature Help、Diagnostics、Git、Integrated Terminal、Tasks、Debugger / DAP を追加します。外部 process は `shell: false`、argv 分離、cwd 検証、timeout、stop、exit code、stdout / stderr 分離を共通要件とします。
 
@@ -47,7 +47,7 @@ Language Server、Completion、Hover、Signature Help、Diagnostics、Git、Inte
 
 - Debugger 第一弾: Node.js デバッガ。対象ファイル（.js / .mjs / .cjs）を `node --inspect-brk` で起動し、V8 Inspector（CDP）を Main の `src/main/debug/` が DAP 方式の API に変換します。Debug パネル（Ctrl+Shift+D）から開始／停止／再開／一時停止／ステップ実行ができ、コールスタックと変数（オブジェクトは展開可能）を表示します。ブレークポイントはエディタのガターマージン（行番号の左）のクリックで切り替え、停止中の行はエディタにハイライトします。ブレークポイントは実行中の変更も即時反映され、ファイルの削除・リネームにも追従します。同時に実行できるセッションは1つです。
 
-未実装: 外部 DAP アダプタ（他言語デバッガ）の接続。
+- 外部 DAP アダプタ: `.touwa/debug.json` に登録した Debug Adapter Protocol サーバーで他言語をデバッグできます（`src/main/debug/dap-client.ts` / `dap-debug-service.ts` / `debug-config.ts`）。対象ファイルの拡張子で内蔵 Node.js デバッガと自動で切り替え、ブレークポイント／ステップ実行／コールスタック／変数表示は同じ Debug パネルで操作します。起動引数は program / cwd / stopOnEntry の汎用セットのみで、アダプタの逆リクエストには対応しません。書式は `docs/DEBUGGING.md`。
 
 ## Phase 4 — Extensibility
 
