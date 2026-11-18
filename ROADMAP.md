@@ -22,7 +22,7 @@ Explorer selection -> model registry -> tab state -> editor group layout
 
 ## Phase 3 — Developer Tools
 
-**Status: ⏳ 一部実装（Git／Diagnostics／Tasks／Terminal／LSP まで）**
+**Status: ⏳ 一部実装（Git／Diagnostics／Tasks／Terminal／LSP／Debugger まで）**
 
 Language Server、Completion、Hover、Signature Help、Diagnostics、Git、Integrated Terminal、Tasks、Debugger / DAP を追加します。外部 process は `shell: false`、argv 分離、cwd 検証、timeout、stop、exit code、stdout / stderr 分離を共通要件とします。
 
@@ -43,7 +43,9 @@ Language Server、Completion、Hover、Signature Help、Diagnostics、Git、Inte
 
 - Language Server 第二弾: Completion / Hover / Signature Help。Monaco にプロバイダを登録し、言語サーバーの結果を表示します（補完候補は最大200件、種別は Monaco の CompletionItemKind に変換）。リクエスト前に保留中の変更同期を即時送信してサーバーとエディタの内容を一致させます。重複を避けるため、TS/JS については Monaco 標準の補完・Hover・Signature Help を無効化しています。
 
-未実装: Debugger / DAP、ターミナルの PTY 化。
+- Debugger 第一弾: Node.js デバッガ。対象ファイル（.js / .mjs / .cjs）を `node --inspect-brk` で起動し、V8 Inspector（CDP）を Main の `src/main/debug/` が DAP 方式の API に変換します。Debug パネル（Ctrl+Shift+D）から開始／停止／再開／一時停止／ステップ実行ができ、コールスタックと変数（オブジェクトは展開可能）を表示します。ブレークポイントはエディタのガターマージン（行番号の左）のクリックで切り替え、停止中の行はエディタにハイライトします。ブレークポイントは実行中の変更も即時反映され、ファイルの削除・リネームにも追従します。同時に実行できるセッションは1つです。
+
+未実装: ターミナルの PTY 化、外部 DAP アダプタ（他言語デバッガ）の接続。
 
 ## Phase 4 — Extensibility
 

@@ -447,6 +447,81 @@ button {
   background: #2565a8;
   color: #fff;
 }
+.touwa-breakpoint {
+  background: #e51400;
+  border-radius: 50%;
+  width: 11px !important;
+  height: 11px !important;
+  margin-top: 4px;
+  margin-left: 4px;
+}
+.touwa-paused-line {
+  background: rgba(230, 180, 0, 0.22);
+}
+.debug-script {
+  flex: 1;
+  min-width: 0;
+  background: #10141c;
+  border: 1px solid #3a4b64;
+  border-radius: 4px;
+  color: #dbe7f7;
+  padding: 5px 8px;
+  font-size: 12px;
+}
+.debug-var {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  color: #b8c5d7;
+  padding: 2px 6px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.debug-var:disabled {
+  cursor: default;
+}
+.debug-var-toggle {
+  flex-shrink: 0;
+  width: 12px;
+  color: #91a0b5;
+}
+.debug-var-name {
+  color: #e0e8f4;
+  font-weight: 600;
+}
+.debug-var-value {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.debug-frame-active {
+  background: #25334a;
+  color: #fff;
+}
+.debug-bp-row {
+  display: flex;
+  align-items: center;
+}
+.debug-bp-row .git-entry {
+  flex: 1;
+  min-width: 0;
+}
+.debug-bp-remove {
+  flex-shrink: 0;
+  background: transparent;
+  border: 0;
+  color: #91a0b5;
+  cursor: pointer;
+  padding: 2px 6px;
+  font-size: 13px;
+}
+.debug-bp-remove:hover {
+  color: #f48771;
+}
 .git-panel {
   width: 300px;
   background: #171d28;

@@ -13,7 +13,9 @@ import GitPanel from "./components/GitPanel";
 import ProblemsPanel from "./components/ProblemsPanel";
 import TasksPanel from "./components/TasksPanel";
 import TerminalPanel from "./components/TerminalPanel";
+import DebugPanel from "./components/DebugPanel";
 import type {
+  DebugBreakpoint,
   Diagnostic,
   FileEntry,
   SearchMatch,
@@ -44,7 +46,14 @@ import {
   type TabState,
 } from "./state/tabs";
 
-type Pane = "explorer" | "search" | "git" | "problems" | "tasks" | "terminal";
+type Pane =
+  | "explorer"
+  | "search"
+  | "git"
+  | "problems"
+  | "tasks"
+  | "terminal"
+  | "debug";
 
 export default function App(): JSX.Element {
   const [root, setRoot] = useState("No workspace");
@@ -75,6 +84,102 @@ export default function App(): JSX.Element {
     new Map<string, ReturnType<typeof setTimeout>>(),
   );
   const lspProvidersRegisteredRef = useRef(false);
+  const monacoRef = useRef<Monaco | null>(null);
+  // Debugger state: breakpoints live in the renderer (the full set is
+  // passed at start; edits during a session are pushed to Main).
+  const [breakpoints, setBreakpoints] = useState<Map<string, number[]>>(
+    new Map(),
+  );
+  const breakpointsRef = useRef(breakpoints);
+  breakpointsRef.current = breakpoints;
+  const debugActiveRef = useRef(false);
+  const [pausedFrame, setPausedFrame] = useState<{
+    relativePath: string;
+    line: number;
+  } | null>(null);
+  const pausedFrameRef = useRef(pausedFrame);
+  pausedFrameRef.current = pausedFrame;
+  const decorationCollectionsRef = useRef(
+    new Map<string, editor.IEditorDecorationsCollection>(),
+  );
+
+  const applyEditorDecorations = useCallback((tabId: string) => {
+    const instance = editorsRef.current.get(tabId);
+    const monacoInstance = monacoRef.current;
+    if (!instance || !monacoInstance) return;
+    const found = groupsRef.current.groups
+      .flatMap((g) => g.tabs)
+      .find((t) => t.id === tabId);
+    if (!found) return;
+    let collection = decorationCollectionsRef.current.get(tabId);
+    if (!collection) {
+      collection = instance.createDecorationsCollection();
+      decorationCollectionsRef.current.set(tabId, collection);
+    }
+    const decorations: editor.IModelDeltaDecoration[] = (
+      breakpointsRef.current.get(found.relativePath) ?? []
+    ).map((line) => ({
+      range: new monacoInstance.Range(line, 1, line, 1),
+      options: {
+        glyphMarginClassName: "touwa-breakpoint",
+        glyphMarginHoverMessage: { value: "ブレークポイント" },
+      },
+    }));
+    const paused = pausedFrameRef.current;
+    if (paused && paused.relativePath === found.relativePath) {
+      decorations.push({
+        range: new monacoInstance.Range(paused.line, 1, paused.line, 1),
+        options: {
+          isWholeLine: true,
+          className: "touwa-paused-line",
+        },
+      });
+    }
+    collection.set(decorations);
+  }, []);
+
+  const toggleBreakpoint = useCallback(
+    (relativePath: string, line: number) => {
+      const current = breakpointsRef.current.get(relativePath) ?? [];
+      const next = current.includes(line)
+        ? current.filter((l) => l !== line)
+        : [...current, line].sort((a, b) => a - b);
+      const map = new Map(breakpointsRef.current);
+      if (next.length === 0) map.delete(relativePath);
+      else map.set(relativePath, next);
+      breakpointsRef.current = map;
+      setBreakpoints(map);
+      if (debugActiveRef.current) {
+        void window.touwa.debug
+          .setBreakpoints(relativePath, next)
+          .catch(() => {});
+      }
+    },
+    [],
+  );
+
+  // Track the debug session in App as well: breakpoint edits are
+  // pushed live only while a session runs, and the paused line is
+  // highlighted in the editor.
+  useEffect(() => {
+    return window.touwa.debug.onState((event) => {
+      debugActiveRef.current = event.status !== "terminated";
+      if (event.status === "paused" && event.frames && event.frames[0]) {
+        setPausedFrame({
+          relativePath: event.frames[0].relativePath,
+          line: event.frames[0].line,
+        });
+      } else {
+        setPausedFrame(null);
+      }
+    });
+  }, []);
+
+  useEffect(() => {
+    for (const tabId of editorsRef.current.keys()) {
+      applyEditorDecorations(tabId);
+    }
+  }, [breakpoints, pausedFrame, groups, applyEditorDecorations]);
 
   const tab = activeTab(groups);
 
@@ -325,6 +430,8 @@ export default function App(): JSX.Element {
         // The main process keys language-server documents by root;
         // diagnostics from the previous workspace no longer apply.
         setLspDiagnostics(new Map());
+        setBreakpoints(new Map());
+        setPausedFrame(null);
         setStatus("Workspace opened");
       }
     } catch (e) {
@@ -607,6 +714,23 @@ export default function App(): JSX.Element {
         lspClose(openTab.relativePath);
         lspOpen(renamedPath, openTab.content);
       }
+      // Breakpoints follow the rename as well.
+      setBreakpoints((prev) => {
+        const next = new Map<string, number[]>();
+        for (const [bpPath, lines] of prev) {
+          const affected =
+            entry.kind === "directory"
+              ? bpPath.startsWith(`${entry.relativePath}/`)
+              : bpPath === entry.relativePath;
+          next.set(
+            affected
+              ? newPath + bpPath.slice(entry.relativePath.length)
+              : bpPath,
+            lines,
+          );
+        }
+        return next;
+      });
       await refreshEntries();
       setExplorerKey((k) => k + 1);
       setStatus(`Renamed to ${newPath}`);
@@ -637,6 +761,18 @@ export default function App(): JSX.Element {
         closeTabsForPath(prev, entry.relativePath, entry.kind === "directory"),
       );
       for (const affectedPath of affectedPaths) lspClose(affectedPath);
+      // Breakpoints on deleted files are dropped.
+      setBreakpoints((prev) => {
+        const next = new Map<string, number[]>();
+        for (const [bpPath, lines] of prev) {
+          const affected =
+            entry.kind === "directory"
+              ? bpPath.startsWith(`${entry.relativePath}/`)
+              : bpPath === entry.relativePath;
+          if (!affected) next.set(bpPath, lines);
+        }
+        return next;
+      });
       await refreshEntries();
       setExplorerKey((k) => k + 1);
       setStatus(`Deleted ${entry.relativePath}`);
@@ -745,6 +881,15 @@ export default function App(): JSX.Element {
       run: () => {
         setSidebarVisible(true);
         setPane("terminal");
+      },
+    },
+    {
+      id: "show-debug",
+      title: "View: Show Debug",
+      shortcut: "Ctrl+Shift+D",
+      run: () => {
+        setSidebarVisible(true);
+        setPane("debug");
       },
     },
     {
@@ -857,6 +1002,10 @@ export default function App(): JSX.Element {
         e.preventDefault();
         setSidebarVisible(true);
         setPane("problems");
+      } else if (key === "d" && e.shiftKey) {
+        e.preventDefault();
+        setSidebarVisible(true);
+        setPane("debug");
       } else if (key === "`") {
         e.preventDefault();
         setSidebarVisible(true);
@@ -953,6 +1102,16 @@ export default function App(): JSX.Element {
             }}
           >
             TM
+          </div>
+          <div
+            className={`activity-icon ${sidebarVisible && pane === "debug" ? "active" : ""}`}
+            title="Debug (Ctrl+Shift+D)"
+            onClick={() => {
+              setSidebarVisible(true);
+              setPane("debug");
+            }}
+          >
+            DB
           </div>
         </nav>
         {sidebarVisible &&
@@ -1054,13 +1213,57 @@ export default function App(): JSX.Element {
               onListTasks={() => window.touwa.tasks.list()}
               onRunTask={(label) => window.touwa.tasks.run(label)}
             />
-          ) : (
+          ) : pane === "terminal" ? (
             <TerminalPanel
               onStart={() => window.touwa.terminal.start()}
               onWrite={(id, data) => window.touwa.terminal.write(id, data)}
               onKill={(id) => window.touwa.terminal.kill(id)}
               onData={(callback) => window.touwa.terminal.onData(callback)}
               onExit={(callback) => window.touwa.terminal.onExit(callback)}
+            />
+          ) : (
+            <DebugPanel
+              activePath={tab?.relativePath ?? ""}
+              breakpoints={[...breakpoints.entries()].flatMap(
+                ([relativePath, lines]) =>
+                  lines.map(
+                    (line): DebugBreakpoint => ({ relativePath, line }),
+                  ),
+              )}
+              onStart={(script) =>
+                window.touwa.debug.start(
+                  script,
+                  [...breakpointsRef.current.entries()].flatMap(
+                    ([relativePath, lines]) =>
+                      lines.map(
+                        (line): DebugBreakpoint => ({ relativePath, line }),
+                      ),
+                  ),
+                )
+              }
+              onStop={() => window.touwa.debug.stop()}
+              onResume={() => window.touwa.debug.resume()}
+              onStepOver={() => window.touwa.debug.stepOver()}
+              onStepInto={() => window.touwa.debug.stepInto()}
+              onStepOut={() => window.touwa.debug.stepOut()}
+              onPause={() => window.touwa.debug.pause()}
+              onFrameVariables={(frameIndex) =>
+                window.touwa.debug.frameVariables(frameIndex)
+              }
+              onVariables={(ref) => window.touwa.debug.variables(ref)}
+              onState={(callback) => window.touwa.debug.onState(callback)}
+              onOutput={(callback) => window.touwa.debug.onOutput(callback)}
+              onJumpTo={(relativePath, line, column) => {
+                const entry: FileEntry = {
+                  name: relativePath.split("/").pop() ?? relativePath,
+                  relativePath,
+                  kind: "file",
+                };
+                void openFile(entry, undefined, line, column);
+              }}
+              onRemoveBreakpoint={(relativePath, line) =>
+                toggleBreakpoint(relativePath, line)
+              }
             />
           ))}
         <main className="editor-groups">
@@ -1161,6 +1364,7 @@ export default function App(): JSX.Element {
                         lspSyncChange(groupTab.relativePath, text);
                       }}
                       onMount={(instance, monacoInstance) => {
+                        monacoRef.current = monacoInstance;
                         registerLspProviders(monacoInstance);
                         editorsRef.current.set(groupTab.id, instance);
                         // Drop the reference when Monaco disposes the
@@ -1169,7 +1373,26 @@ export default function App(): JSX.Element {
                         // on a disposed instance.
                         instance.onDidDispose(() => {
                           editorsRef.current.delete(groupTab.id);
+                          decorationCollectionsRef.current.delete(
+                            groupTab.id,
+                          );
                         });
+                        // Clicking the glyph margin toggles a
+                        // breakpoint for that line of this file.
+                        instance.onMouseDown((e) => {
+                          if (
+                            e.target.type ===
+                              monacoInstance.editor.MouseTargetType
+                                .GUTTER_GLYPH_MARGIN &&
+                            e.target.position
+                          ) {
+                            toggleBreakpoint(
+                              groupTab.relativePath,
+                              e.target.position.lineNumber,
+                            );
+                          }
+                        });
+                        applyEditorDecorations(groupTab.id);
                         instance.onDidChangeCursorPosition((e) => {
                           setCursor(
                             `Ln ${e.position.lineNumber}, Col ${e.position.column}`,
@@ -1189,6 +1412,7 @@ export default function App(): JSX.Element {
                       options={{
                         fontSize: 14,
                         minimap: { enabled: false },
+                        glyphMargin: true,
                         automaticLayout: true,
                         tabSize: 2,
                         wordWrap: "off",

@@ -150,6 +150,34 @@ type LspSignatureHelpResult = {
   activeParameter: number;
 };
 
+type DebugBreakpoint = { relativePath: string; line: number };
+
+type DebugFrame = {
+  id: number;
+  name: string;
+  relativePath: string;
+  line: number;
+  column: number;
+};
+
+type DebugVariable = {
+  name: string;
+  value: string;
+  type: string;
+  variablesReference: number;
+};
+
+type DebugStateEvent = {
+  status: "running" | "paused" | "terminated";
+  reason?: string;
+  frames?: DebugFrame[];
+};
+
+type DebugOutputEvent = {
+  stream: "stdout" | "stderr";
+  text: string;
+};
+
 const api = {
   workspace: {
     open: (): Promise<{ root: string; entries: FileEntry[] } | null> =>
@@ -283,6 +311,52 @@ const api = {
       };
     },
   },
+  debug: {
+    start: (
+      script: string,
+      breakpoints: DebugBreakpoint[],
+    ): Promise<void> =>
+      ipcRenderer.invoke("debug:start", script, breakpoints),
+    stop: (): Promise<void> => ipcRenderer.invoke("debug:stop"),
+    resume: (): Promise<void> => ipcRenderer.invoke("debug:resume"),
+    stepOver: (): Promise<void> => ipcRenderer.invoke("debug:stepOver"),
+    stepInto: (): Promise<void> => ipcRenderer.invoke("debug:stepInto"),
+    stepOut: (): Promise<void> => ipcRenderer.invoke("debug:stepOut"),
+    pause: (): Promise<void> => ipcRenderer.invoke("debug:pause"),
+    setBreakpoints: (
+      relativePath: string,
+      lines: number[],
+    ): Promise<void> =>
+      ipcRenderer.invoke("debug:setBreakpoints", relativePath, lines),
+    frameVariables: (frameIndex: number): Promise<DebugVariable[]> =>
+      ipcRenderer.invoke("debug:frameVariables", frameIndex),
+    variables: (variablesReference: number): Promise<DebugVariable[]> =>
+      ipcRenderer.invoke("debug:variables", variablesReference),
+    onState: (
+      callback: (event: DebugStateEvent) => void,
+    ): (() => void) => {
+      const listener = (
+        _event: Electron.IpcRendererEvent,
+        payload: DebugStateEvent,
+      ): void => callback(payload);
+      ipcRenderer.on("debug:state", listener);
+      return () => {
+        ipcRenderer.removeListener("debug:state", listener);
+      };
+    },
+    onOutput: (
+      callback: (event: DebugOutputEvent) => void,
+    ): (() => void) => {
+      const listener = (
+        _event: Electron.IpcRendererEvent,
+        payload: DebugOutputEvent,
+      ): void => callback(payload);
+      ipcRenderer.on("debug:output", listener);
+      return () => {
+        ipcRenderer.removeListener("debug:output", listener);
+      };
+    },
+  },
   file: {
     read: (relativePath: string): Promise<FileSnapshot> =>
       ipcRenderer.invoke("file:read", relativePath),
@@ -327,4 +401,9 @@ export type {
   LspCompletionItem,
   LspHoverResult,
   LspSignatureHelpResult,
+  DebugBreakpoint,
+  DebugFrame,
+  DebugVariable,
+  DebugStateEvent,
+  DebugOutputEvent,
 };

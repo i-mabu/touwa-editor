@@ -39,6 +39,8 @@ import {
 import { runDiagnostics } from "../diagnostics/diagnostics-service";
 import { loadTasks, runTask } from "../tasks/tasks-service";
 import { terminalService } from "../terminal/terminal-service";
+import { debugService } from "../debug/debug-service";
+import type { DebugBreakpoint } from "../debug/debug-service";
 import { lspService } from "../lsp/lsp-service";
 
 const workspaceRoots = new Map<number, string>();
@@ -321,6 +323,135 @@ export function registerIpc(): void {
     const killed = terminalService.kill(sessionId);
     terminalOwners.delete(sessionId);
     return killed;
+  });
+  // The debugger runs one session at a time, owned by the window that
+  // started it: state/output events go only to that window, only that
+  // window may control it, and it stops when the window is destroyed.
+  let debugOwner: number | null = null;
+  const requireDebugOwner = (event: IpcMainInvokeEvent): void => {
+    if (debugOwner !== event.sender.id) {
+      throw new Error("Invalid debug session.");
+    }
+  };
+  const parseBreakpoints = (value: unknown): DebugBreakpoint[] => {
+    if (!Array.isArray(value) || value.length > 500) {
+      throw new Error("Invalid breakpoints.");
+    }
+    const breakpoints: DebugBreakpoint[] = [];
+    for (const entry of value) {
+      if (entry === null || typeof entry !== "object") {
+        throw new Error("Invalid breakpoints.");
+      }
+      const candidate = entry as { relativePath?: unknown; line?: unknown };
+      if (
+        typeof candidate.relativePath !== "string" ||
+        !Number.isInteger(candidate.line) ||
+        (candidate.line as number) < 1 ||
+        (candidate.line as number) > 1_000_000
+      ) {
+        throw new Error("Invalid breakpoints.");
+      }
+      breakpoints.push({
+        relativePath: candidate.relativePath,
+        line: candidate.line as number,
+      });
+    }
+    return breakpoints;
+  };
+  const parseLines = (value: unknown): number[] => {
+    if (!Array.isArray(value) || value.length > 500) {
+      throw new Error("Invalid breakpoints.");
+    }
+    for (const line of value) {
+      if (!Number.isInteger(line) || (line as number) < 1 || (line as number) > 1_000_000) {
+        throw new Error("Invalid breakpoints.");
+      }
+    }
+    return value as number[];
+  };
+  ipcMain.handle(
+    "debug:start",
+    async (event, script: unknown, breakpoints: unknown) => {
+      if (typeof script !== "string" || script.length === 0) {
+        throw new Error("Invalid debug target.");
+      }
+      const parsed = parseBreakpoints(breakpoints);
+      const root = requireRoot(event.sender.id);
+      const sender = event.sender;
+      debugOwner = sender.id;
+      sender.once("destroyed", () => {
+        if (debugOwner === sender.id) {
+          debugOwner = null;
+          void debugService.stop();
+        }
+      });
+      await debugService.start(root, script, parsed, {
+        onState: (state) => {
+          if (!sender.isDestroyed()) sender.send("debug:state", state);
+        },
+        onOutput: (stream, text) => {
+          if (!sender.isDestroyed()) sender.send("debug:output", { stream, text });
+        },
+      });
+    },
+  );
+  ipcMain.handle("debug:stop", async (event) => {
+    requireDebugOwner(event);
+    await debugService.stop();
+    debugOwner = null;
+  });
+  ipcMain.handle("debug:resume", async (event) => {
+    requireDebugOwner(event);
+    await debugService.resume();
+  });
+  ipcMain.handle("debug:stepOver", async (event) => {
+    requireDebugOwner(event);
+    await debugService.stepOver();
+  });
+  ipcMain.handle("debug:stepInto", async (event) => {
+    requireDebugOwner(event);
+    await debugService.stepInto();
+  });
+  ipcMain.handle("debug:stepOut", async (event) => {
+    requireDebugOwner(event);
+    await debugService.stepOut();
+  });
+  ipcMain.handle("debug:pause", async (event) => {
+    requireDebugOwner(event);
+    await debugService.pause();
+  });
+  ipcMain.handle(
+    "debug:setBreakpoints",
+    async (event, relativePath: unknown, lines: unknown) => {
+      if (typeof relativePath !== "string") {
+        throw new Error("Invalid breakpoints.");
+      }
+      const parsedLines = parseLines(lines);
+      // Breakpoints are edited whether or not a session is running;
+      // with no session there is nothing to apply them to yet (the
+      // full set is passed again at debug:start).
+      if (debugOwner === null) return;
+      requireDebugOwner(event);
+      await debugService.setBreakpoints(relativePath, parsedLines);
+    },
+  );
+  ipcMain.handle("debug:frameVariables", async (event, frameIndex: unknown) => {
+    requireDebugOwner(event);
+    if (
+      !Number.isInteger(frameIndex) ||
+      (frameIndex as number) < 0 ||
+      (frameIndex as number) > 1_000
+    ) {
+      throw new Error("Invalid frame.");
+    }
+    return debugService.frameVariables(frameIndex as number);
+  });
+  ipcMain.handle("debug:variables", async (event, ref: unknown) => {
+    requireDebugOwner(event);
+    if (!Number.isInteger(ref) || (ref as number) < 1) {
+      throw new Error("Invalid variable reference.");
+    }
+    return debugService.variables(ref as number);
   });
   // Language server documents are synced from the renderer (it owns
   // the text). Diagnostics are forwarded to every window that has

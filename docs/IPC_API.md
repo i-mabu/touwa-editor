@@ -161,6 +161,16 @@ Renderer が所有するドキュメントテキストを言語サーバーへ�
 
 カーソル位置（1-based）に対する補完候補・Hover・Signature Help を言語サーバーへ問い合わせ、Renderer が扱える形に変換して返します。位置は Main で検証し（行 1–1,000,000、列 1–100,000 の整数）、対象は同期済みのドキュメントのみです（未オープンの場合は空の結果を返します）。補完候補は最大200件で、ドキュメント文字列は markdown に平坦化します。Renderer はリクエスト前に保留中の変更同期を即時送信し、サーバー側のテキストを最新に揃えます。
 
+## Debugger
+
+### `debug.start(script, breakpoints)` / `debug.stop()` / `debug.resume()` / `debug.stepOver()` / `debug.stepInto()` / `debug.stepOut()` / `debug.pause()`
+
+Node.js ファイル（.js / .mjs / .cjs）を `node --inspect-brk` で起動し、V8 Inspector（CDP）経由で制御します。セッションは同時に1つだけで、開始したウィンドウが所有します（他のウィンドウからの制御は拒否し、ウィンドウを閉じると停止します）。状態は `debug:state` イベント（`running` / `paused`（フレーム付き）/ `terminated`）、対象プロセスの出力は `debug:output` イベントで届きます。プログラム終了後、Node がデバッガの切断待ちになるため、Main が接続を閉じてプロセスを終了させます。
+
+### `debug.setBreakpoints(relativePath, lines)` / `debug.frameVariables(frameIndex)` / `debug.variables(variablesReference)`
+
+ブレークポイント集合の置き換え（実行中は即時反映、行は 1–1,000,000 の整数、最大500件）、停止中フレームのスコープ変数（グローバルスコープを除く、最大100件）、オブジェクト変数の展開です。変数の `variablesReference` は停止ごとに再発行され、再開すると無効になります。
+
 ## Error policy
 
 Renderer にはユーザーが対処できるメッセージを返し、内部パスや秘密情報を不要に露出させません。Main では原因を開発者向けログに記録しますが、token、password、環境変数の値は記録しません。

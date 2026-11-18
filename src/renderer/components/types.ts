@@ -99,6 +99,40 @@ export type TerminalExitEvent = {
   signal: string | null;
 };
 
+export type DebugBreakpoint = { relativePath: string; line: number };
+
+export type DebugFrame = {
+  id: number;
+  name: string;
+  relativePath: string;
+  line: number;
+  column: number;
+};
+
+export type DebugVariable = {
+  name: string;
+  value: string;
+  type: string;
+  variablesReference: number;
+};
+
+export type DebugStateEvent = {
+  status: "running" | "paused" | "terminated";
+  reason?: string;
+  frames?: DebugFrame[];
+};
+
+export type DebugOutputEvent = {
+  stream: "stdout" | "stderr";
+  text: string;
+};
+
+/** Extensions the Node.js debugger can launch. */
+export function isDebuggablePath(relativePath: string): boolean {
+  const ext = relativePath.split(".").pop()?.toLowerCase() ?? "";
+  return ext === "js" || ext === "mjs" || ext === "cjs";
+}
+
 const LSP_EXTENSIONS = new Set([
   "ts",
   "tsx",

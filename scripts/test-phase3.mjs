@@ -60,6 +60,14 @@ import {
   mapSignatureHelpResult,
   markupToText,
 } from "../src/main/lsp/lsp-service.ts";
+import {
+  DebugService,
+  allocatePort,
+  isDebuggablePath,
+  mapCallFrame,
+  mapRemoteProperties,
+  urlToRelativePath,
+} from "../src/main/debug/debug-service.ts";
 
 const execFileAsync = promisify(execFile);
 
@@ -885,6 +893,131 @@ test("LspService answers completion, hover and signature help from the bundled s
         help.signatures[0].parameters.some((p) => p.label.includes("name"))
       );
     });
+  } finally {
+    await service.dispose();
+  }
+});
+
+test("debugger mapping helpers convert CDP shapes", async () => {
+  assert.equal(isDebuggablePath("src/app.js"), true);
+  assert.equal(isDebuggablePath("src/app.mjs"), true);
+  assert.equal(isDebuggablePath("src/app.ts"), false);
+  const port = await allocatePort();
+  assert.ok(port > 0 && port < 65536);
+
+  const root = path.join(tmpdir(), "ws");
+  assert.equal(
+    urlToRelativePath(root, "file://" + path.join(root, "src", "a.js")),
+    "src/a.js",
+  );
+  assert.equal(urlToRelativePath(root, "file:///outside.js"), "");
+  assert.equal(urlToRelativePath(root, "node:internal/modules/run_main"), "");
+
+  const frame = mapCallFrame(
+    root,
+    {
+      functionName: "main",
+      location: { scriptId: "7", lineNumber: 4, columnNumber: 2 },
+    },
+    0,
+    "file://" + path.join(root, "src", "a.js"),
+  );
+  assert.deepEqual(frame, {
+    id: 0,
+    name: "main",
+    relativePath: "src/a.js",
+    line: 5,
+    column: 3,
+  });
+  assert.equal(
+    mapCallFrame(root, { location: { lineNumber: 0, columnNumber: 0 } }, 1, "")
+      .name,
+    "(anonymous)",
+  );
+
+  const variables = mapRemoteProperties([
+    { name: "count", value: { type: "number", value: 3 } },
+    { name: "label", value: { type: "string", value: "hi" } },
+    {
+      name: "obj",
+      value: {
+        type: "object",
+        description: "Object",
+        objectId: "obj-1",
+      },
+    },
+    { name: "fn", value: { type: "function", description: "function f() {}" } },
+    { name: "missing", value: { type: "undefined" } },
+    { name: "noValue" },
+    "junk",
+  ]);
+  assert.deepEqual(
+    variables.map((v) => [v.name, v.value, v.objectId]),
+    [
+      ["count", "3", null],
+      ["label", "hi", null],
+      ["obj", "Object", "obj-1"],
+      ["fn", "function f() {}", null],
+      ["missing", "undefined", null],
+    ],
+  );
+});
+
+test("DebugService runs a real Node program with breakpoints and variables", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "touwa-phase3-debug-"));
+  const source = [
+    "const a = 1;",
+    "const b = a + 2;",
+    "const obj = { total: b };",
+    'console.log("sum=" + obj.total);',
+    "",
+  ].join("\n");
+  await writeFile(path.join(root, "app.js"), source);
+  const service = new DebugService(new SessionManager());
+  const states = [];
+  let output = "";
+  try {
+    await assert.rejects(
+      service.start(root, "app.ts", [], { onState() {}, onOutput() {} }),
+      /Only \.js/,
+    );
+    await service.start(root, "app.js", [{ relativePath: "app.js", line: 2 }], {
+      onState: (state) => states.push(state),
+      onOutput: (_stream, text) => {
+        output += text;
+      },
+    });
+    const pausedAt = (line) =>
+      states.some(
+        (s) =>
+          s.status === "paused" &&
+          s.frames?.[0]?.relativePath === "app.js" &&
+          s.frames?.[0]?.line === line,
+      );
+    await waitForAsync(() => pausedAt(2));
+    const atLine2 = await service.frameVariables(0);
+    assert.ok(
+      atLine2.some((v) => v.name === "a" && v.value === "1"),
+      "local variable a should be visible at line 2",
+    );
+    // Move the breakpoint live, then run to it.
+    await service.setBreakpoints("app.js", [4]);
+    await service.resume();
+    await waitForAsync(() => pausedAt(4));
+    const atLine4 = await service.frameVariables(0);
+    const obj = atLine4.find((v) => v.name === "obj");
+    assert.ok(obj && obj.variablesReference > 0, "obj should be expandable");
+    const children = await service.variables(obj.variablesReference);
+    assert.ok(
+      children.some((v) => v.name === "total" && v.value === "3"),
+      "obj.total should expand to 3",
+    );
+    await service.resume();
+    await waitForAsync(() =>
+      states.some((s) => s.status === "terminated"),
+    );
+    assert.ok(output.includes("sum=3"));
+    assert.equal(service.running, false);
   } finally {
     await service.dispose();
   }
