@@ -693,3 +693,43 @@ button {
 .task-stderr {
   color: #f0a49a;
 }
+.terminal-body {
+  display: flex;
+  flex-direction: column;
+}
+.terminal-output {
+  flex: 1;
+  background: #10141c;
+  border: 1px solid #2b3443;
+  border-radius: 4px;
+  color: #b8c5d7;
+  font-family: Consolas, monospace;
+  font-size: 11px;
+  padding: 6px 8px;
+  margin: 0 6px 6px;
+  min-height: 200px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.terminal-input-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 6px;
+}
+.terminal-prompt {
+  color: #75beff;
+  font-family: Consolas, monospace;
+  font-size: 12px;
+}
+.terminal-input {
+  flex: 1;
+  background: #10141c;
+  border: 1px solid #3a4b64;
+  color: #dbe7f7;
+  border-radius: 4px;
+  padding: 5px 8px;
+  font-family: Consolas, monospace;
+  font-size: 12px;
+}

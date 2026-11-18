@@ -61,6 +61,9 @@ const required = [
       "diagnostics:run",
       "tasks:list",
       "tasks:run",
+      "terminal:start",
+      "terminal:data",
+      "terminal:exit",
       "GitStatus",
       "GitCommit",
     ],
@@ -90,6 +93,18 @@ const required = [
   [
     "src/renderer/components/TasksPanel.tsx",
     ["TASKS", "onListTasks", "onRunTask"],
+  ],
+  [
+    "src/main/process/session-manager.ts",
+    ["SessionManager", "shell: false", "Failed to start"],
+  ],
+  [
+    "src/main/terminal/terminal-service.ts",
+    ["TerminalService", "shellCandidates", "powershell", "terminalService"],
+  ],
+  [
+    "src/renderer/components/TerminalPanel.tsx",
+    ["TERMINAL", "onStart", "onWrite", "onKill", "onData", "onExit"],
   ],
   [
     "src/renderer/App.tsx",

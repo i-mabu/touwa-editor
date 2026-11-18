@@ -2,6 +2,7 @@ import { app, BrowserWindow, session, shell } from "electron";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { registerIpc } from "./ipc/register-ipc";
+import { terminalService } from "./terminal/terminal-service";
 
 function createWindow(): void {
   const window = new BrowserWindow({
@@ -54,4 +55,8 @@ app.whenReady().then(() => {
 });
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
+});
+app.on("before-quit", () => {
+  // No shell session may outlive the app.
+  terminalService.killAll();
 });

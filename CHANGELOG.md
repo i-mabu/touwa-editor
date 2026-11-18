@@ -13,6 +13,7 @@
 - Git パネルに同期操作を追加しました。フェッチ、プル（fast-forward のみ、分岐時はエラー）、プッシュ（初回は upstream を自動設定）に対応します（`git.fetch` / `git.pull` / `git.push` IPC）。プロセス実行サービスに環境変数の受け渡しを追加し、資格情報プロンプトを無効化して認証はユーザーの Git 設定に委ねます。Phase 3 テストは計12件（全体33件）になりました。
 - Problems パネル（Ctrl+Shift+M）を追加しました。ワークスペース自身の TypeScript（`tsc --noEmit`）で型チェックし、エラー／警告をファイル別に表示、クリックで該当位置へ移動します（`diagnostics.run` IPC）。tsconfig が無いワークスペースでは理由を表示して利用不可とします。Phase 3 テストは計15件（全体36件）になりました。
 - Tasks パネルを追加しました。`.touwa/tasks.json` に定義したタスクを実行ボタンから実行し、終了コードと出力を表示します（`tasks.list` / `tasks.run` IPC）。自動実行はせず、Renderer からはラベルのみを受け、定義は Main が実行直前に検証します。書式は `docs/TASKS.md` に記載しました。Phase 3 テストは計17件（全体38件）になりました。
+- Terminal パネル（Ctrl+`）と常駐プロセスセッション基盤を追加しました。シェル（Windows は PowerShell／cmd、その他は $SHELL／sh）をワークスペースで起動し、入出力をストリーミングします（`terminal.start`/`terminal.write`/`terminal.kill`IPC と`terminal:data`/`terminal:exit` イベント）。セッションは開始したウィンドウが所有し、アプリ終了時にすべて終了します。パイプ接続のため PTY ではなく、TTY が必要な全画面プログラムは動作しません。Phase 3 テストは計20件（全体41件）になりました。
 
 - 複数タブと Editor Groups（最大2グループ、Split Right／Close Group）
 - 再帰 Explorer（ディレクトリの遅延読み込み、ディレクトリ優先ソート）

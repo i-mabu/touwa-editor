@@ -37,7 +37,9 @@ Language Server、Completion、Hover、Signature Help、Diagnostics、Git、Inte
 
 - Tasks: `.touwa/tasks.json` のタスク定義を Tasks パネルから実行（明示的な実行操作のみ、自動実行なし）。定義の検証は Main で行い、Renderer からはラベルだけを受けます。書式は `docs/TASKS.md`。
 
-未実装: Language Server 系（Completion / Hover / Signature Help と常駐型の診断）、Integrated Terminal、Debugger / DAP。
+- 常駐プロセスセッション基盤（`src/main/process/session-manager.ts`）と Terminal パネル（Ctrl+`）。シェルをワークスペースで起動し、入出力をストリーミングします。現状はパイプ接続のコンソールで PTY ではないため、TTY が必要な全画面プログラムは動作しません。PTY 化は今後の課題です。セッション基盤は言語サーバー接続にも流用できます。
+
+未実装: Language Server 系（Completion / Hover / Signature Help と常駐型の診断）、Debugger / DAP、ターミナルの PTY 化。
 
 ## Phase 4 — Extensibility
 

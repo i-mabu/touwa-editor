@@ -1,4 +1,9 @@
-import { dialog, ipcMain, type WebContents } from "electron";
+import {
+  dialog,
+  ipcMain,
+  type IpcMainInvokeEvent,
+  type WebContents,
+} from "electron";
 import {
   createWorkspaceEntry,
   deleteWorkspaceEntry,
@@ -33,6 +38,7 @@ import {
 } from "../git/git-service";
 import { runDiagnostics } from "../diagnostics/diagnostics-service";
 import { loadTasks, runTask } from "../tasks/tasks-service";
+import { terminalService } from "../terminal/terminal-service";
 
 const workspaceRoots = new Map<number, string>();
 const watchers = new Map<number, WorkspaceWatcher>();
@@ -252,6 +258,68 @@ export function registerIpc(): void {
       throw new Error("Invalid task label.");
     }
     return runTask(requireRoot(event.sender.id), label);
+  });
+  // Terminal sessions belong to the window that started them: output
+  // events go only to that window, only that window may write to or
+  // kill them, and they are killed when the window is destroyed.
+  const terminalOwners = new Map<string, number>();
+  const watchedSenders = new Set<number>();
+  const ownSession = (event: IpcMainInvokeEvent, id: unknown): string => {
+    if (typeof id !== "string" || terminalOwners.get(id) !== event.sender.id) {
+      throw new Error("Invalid terminal session.");
+    }
+    return id;
+  };
+  ipcMain.handle("terminal:start", async (event) => {
+    const root = requireRoot(event.sender.id);
+    const sender = event.sender;
+    // Assigned as soon as start resolves; the hooks can only fire
+    // after that (the manager attaches them once the shell spawned).
+    let currentId = "";
+    const result = await terminalService.start(root, {
+      onData: ({ stream, text }) => {
+        if (!sender.isDestroyed()) {
+          sender.send("terminal:data", { id: currentId, stream, text });
+        }
+      },
+      onExit: ({ exitCode, signal }) => {
+        terminalOwners.delete(currentId);
+        if (!sender.isDestroyed()) {
+          sender.send("terminal:exit", { id: currentId, exitCode, signal });
+        }
+      },
+    });
+    currentId = result.id;
+    terminalOwners.set(result.id, sender.id);
+    if (!watchedSenders.has(sender.id)) {
+      watchedSenders.add(sender.id);
+      sender.once("destroyed", () => {
+        watchedSenders.delete(sender.id);
+        for (const [id, owner] of [...terminalOwners.entries()]) {
+          if (owner === sender.id) {
+            terminalService.kill(id);
+            terminalOwners.delete(id);
+          }
+        }
+      });
+    }
+    return result;
+  });
+  ipcMain.handle(
+    "terminal:write",
+    async (event, id: unknown, data: unknown) => {
+      const sessionId = ownSession(event, id);
+      if (typeof data !== "string") {
+        throw new Error("Invalid terminal input.");
+      }
+      return terminalService.write(sessionId, data);
+    },
+  );
+  ipcMain.handle("terminal:kill", async (event, id: unknown) => {
+    const sessionId = ownSession(event, id);
+    const killed = terminalService.kill(sessionId);
+    terminalOwners.delete(sessionId);
+    return killed;
   });
   ipcMain.handle(
     "file:write",

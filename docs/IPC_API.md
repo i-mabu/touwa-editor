@@ -139,6 +139,14 @@ const saved = await window.touwa.file.write(
 
 ラベルで指定したタスクを実行し、`TaskRunResult`（終了コード、シグナル、タイムアウト有無、stdout / stderr、所要時間）を返します。Renderer から送れるのはラベルのみで、コマンドや引数は Main が実行直前にファイルを読み直して決めます。実行はユーザーがパネルで実行ボタンを押したときに限ります。書式は `docs/TASKS.md` を参照してください。
 
+## Terminal API（Phase 3）
+
+### `terminal.start()` / `terminal.write(id, data)` / `terminal.kill(id)`
+
+ワークスペースを cwd としてシェル（Windows は PowerShell、なければ cmd／その他は $SHELL、なければ sh）を常駐セッションとして起動します。セッションは開始したウィンドウが所有し、出力はそのウィンドウにだけ `terminal:data` イベント（`{id, stream, text}`）で、終了は `terminal:exit` イベント（`{id, exitCode, signal}`）で届きます。他ウィンドウのセッションへの書き込み・終了は拒否し、ウィンドウ破棄時とアプリ終了時にセッションを終了します。
+
+これはパイプ接続のコンソールであり、PTY ではありません。TTY を必要とする全画面プログラムや生キー入力を読むプロンプトは正しく動作しません（制限は KNOWN_ISSUES と ROADMAP に明記）。
+
 ## Error policy
 
 Renderer にはユーザーが対処できるメッセージを返し、内部パスや秘密情報を不要に露出させません。Main では原因を開発者向けログに記録しますが、token、password、環境変数の値は記録しません。

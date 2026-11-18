@@ -40,6 +40,11 @@ import {
   loadTasks,
   runTask,
 } from "../src/main/tasks/tasks-service.ts";
+import { SessionManager } from "../src/main/process/session-manager.ts";
+import {
+  TerminalService,
+  shellCandidates,
+} from "../src/main/terminal/terminal-service.ts";
 
 const execFileAsync = promisify(execFile);
 
@@ -475,6 +480,102 @@ test("loadTasks / runTask execute a declared task end to end", async () => {
   const failed = await runTask(root, "fail");
   assert.equal(failed.exitCode, 5);
   await assert.rejects(() => runTask(root, "missing"), /Task not found/);
+});
+
+function waitFor(predicate, timeoutMs = 10_000) {
+  return new Promise((resolve, reject) => {
+    const started = Date.now();
+    const timer = setInterval(() => {
+      if (predicate()) {
+        clearInterval(timer);
+        resolve();
+      } else if (Date.now() - started > timeoutMs) {
+        clearInterval(timer);
+        reject(new Error("waitFor timed out"));
+      }
+    }, 25);
+  });
+}
+
+test("SessionManager streams stdin/stdout and reports exit", async () => {
+  const manager = new SessionManager();
+  let received = "";
+  let exit = null;
+  const id = await manager.start(
+    {
+      command: "node",
+      args: [
+        "-e",
+        "process.stdin.on('data', (d) => process.stdout.write(String(d).toUpperCase()))",
+      ],
+      cwd: tmpdir(),
+    },
+    {
+      onData: (event) => {
+        received += event.text;
+      },
+      onExit: (event) => {
+        exit = event;
+      },
+    },
+  );
+  assert.equal(manager.has(id), true);
+  manager.write(id, "abc\n");
+  await waitFor(() => received.includes("ABC"));
+  assert.equal(manager.kill(id), true);
+  await waitFor(() => exit !== null);
+  assert.equal(manager.has(id), false);
+  assert.equal(manager.write(id, "x"), false);
+  await assert.rejects(
+    () =>
+      manager.start(
+        { command: "../bin/sh", args: [], cwd: tmpdir() },
+        { onData: () => undefined, onExit: () => undefined },
+      ),
+    /bare executable/,
+  );
+  await assert.rejects(
+    () =>
+      manager.start(
+        { command: "touwa-no-such-command-xyz", args: [], cwd: tmpdir() },
+        { onData: () => undefined, onExit: () => undefined },
+      ),
+    /Failed to start/,
+  );
+});
+
+test("shellCandidates prefers PowerShell on Windows and $SHELL elsewhere", () => {
+  assert.equal(shellCandidates("win32", {})[0].command, "powershell");
+  assert.equal(shellCandidates("win32", {})[1].command, "cmd");
+  assert.deepEqual(
+    shellCandidates("linux", { SHELL: "/bin/bash" }).map((c) => c.command),
+    ["bash", "sh"],
+  );
+  assert.deepEqual(
+    shellCandidates("linux", {}).map((c) => c.command),
+    ["sh"],
+  );
+});
+
+test("TerminalService runs the platform shell end to end", async () => {
+  const manager = new SessionManager();
+  const service = new TerminalService(manager);
+  const root = await mkdtemp(path.join(tmpdir(), "touwa-phase3-term-"));
+  let received = "";
+  let exited = false;
+  const { id, shell } = await service.start(root, {
+    onData: (event) => {
+      received += event.text;
+    },
+    onExit: () => {
+      exited = true;
+    },
+  });
+  assert.ok(shell.length > 0);
+  service.write(id, "echo terminal-ok\n");
+  await waitFor(() => received.includes("terminal-ok"));
+  service.kill(id);
+  await waitFor(() => exited);
 });
 
 test("getGitStatus reports a plain folder as not a repository", async () => {

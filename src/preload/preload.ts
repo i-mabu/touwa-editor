@@ -102,6 +102,18 @@ type TaskRunResult = {
   durationMs: number;
 };
 
+type TerminalDataEvent = {
+  id: string;
+  stream: "stdout" | "stderr";
+  text: string;
+};
+
+type TerminalExitEvent = {
+  id: string;
+  exitCode: number | null;
+  signal: string | null;
+};
+
 const api = {
   workspace: {
     open: (): Promise<{ root: string; entries: FileEntry[] } | null> =>
@@ -169,6 +181,34 @@ const api = {
     run: (label: string): Promise<TaskRunResult> =>
       ipcRenderer.invoke("tasks:run", label),
   },
+  terminal: {
+    start: (): Promise<{ id: string; shell: string }> =>
+      ipcRenderer.invoke("terminal:start"),
+    write: (id: string, data: string): Promise<boolean> =>
+      ipcRenderer.invoke("terminal:write", id, data),
+    kill: (id: string): Promise<boolean> =>
+      ipcRenderer.invoke("terminal:kill", id),
+    onData: (callback: (event: TerminalDataEvent) => void): (() => void) => {
+      const listener = (
+        _event: Electron.IpcRendererEvent,
+        payload: TerminalDataEvent,
+      ): void => callback(payload);
+      ipcRenderer.on("terminal:data", listener);
+      return () => {
+        ipcRenderer.removeListener("terminal:data", listener);
+      };
+    },
+    onExit: (callback: (event: TerminalExitEvent) => void): (() => void) => {
+      const listener = (
+        _event: Electron.IpcRendererEvent,
+        payload: TerminalExitEvent,
+      ): void => callback(payload);
+      ipcRenderer.on("terminal:exit", listener);
+      return () => {
+        ipcRenderer.removeListener("terminal:exit", listener);
+      };
+    },
+  },
   file: {
     read: (relativePath: string): Promise<FileSnapshot> =>
       ipcRenderer.invoke("file:read", relativePath),
@@ -206,4 +246,6 @@ export type {
   TaskDef,
   TasksListResult,
   TaskRunResult,
+  TerminalDataEvent,
+  TerminalExitEvent,
 };

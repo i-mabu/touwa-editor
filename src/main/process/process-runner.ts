@@ -42,7 +42,7 @@ const MAX_ARGS = 256;
 const MAX_ARG_LENGTH = 32_768;
 const KILL_GRACE_MS = 1_500;
 
-function assertValidCommand(command: string): void {
+export function assertValidCommand(command: string): void {
   if (
     typeof command !== "string" ||
     command.length === 0 ||
@@ -54,7 +54,7 @@ function assertValidCommand(command: string): void {
   }
 }
 
-function assertValidArgs(args: string[]): void {
+export function assertValidArgs(args: string[]): void {
   if (!Array.isArray(args) || args.length > MAX_ARGS) {
     throw new Error("Invalid process arguments.");
   }
@@ -84,7 +84,7 @@ function assertValidEnv(env: NodeJS.ProcessEnv | undefined): void {
   }
 }
 
-function assertValidCwd(cwd: string): void {
+export function assertValidCwd(cwd: string): void {
   if (typeof cwd !== "string" || cwd.length === 0) {
     throw new Error("A working directory is required.");
   }

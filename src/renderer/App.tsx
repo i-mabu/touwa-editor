@@ -11,6 +11,7 @@ import SearchPanel from "./components/SearchPanel";
 import GitPanel from "./components/GitPanel";
 import ProblemsPanel from "./components/ProblemsPanel";
 import TasksPanel from "./components/TasksPanel";
+import TerminalPanel from "./components/TerminalPanel";
 import type { FileEntry, SearchMatch } from "./components/types";
 import { languageForPath } from "./components/types";
 import {
@@ -34,7 +35,7 @@ import {
   type TabState,
 } from "./state/tabs";
 
-type Pane = "explorer" | "search" | "git" | "problems" | "tasks";
+type Pane = "explorer" | "search" | "git" | "problems" | "tasks" | "terminal";
 
 export default function App(): JSX.Element {
   const [root, setRoot] = useState("No workspace");
@@ -475,6 +476,15 @@ export default function App(): JSX.Element {
       },
     },
     {
+      id: "show-terminal",
+      title: "View: Show Terminal",
+      shortcut: "Ctrl+`",
+      run: () => {
+        setSidebarVisible(true);
+        setPane("terminal");
+      },
+    },
+    {
       id: "reload",
       title: "File: Reload from Disk",
       shortcut: "",
@@ -584,6 +594,10 @@ export default function App(): JSX.Element {
         e.preventDefault();
         setSidebarVisible(true);
         setPane("problems");
+      } else if (key === "`") {
+        e.preventDefault();
+        setSidebarVisible(true);
+        setPane("terminal");
       }
     };
     window.addEventListener("keydown", handler);
@@ -666,6 +680,16 @@ export default function App(): JSX.Element {
             }}
           >
             TK
+          </div>
+          <div
+            className={`activity-icon ${sidebarVisible && pane === "terminal" ? "active" : ""}`}
+            title="Terminal (Ctrl+`)"
+            onClick={() => {
+              setSidebarVisible(true);
+              setPane("terminal");
+            }}
+          >
+            TM
           </div>
         </nav>
         {sidebarVisible &&
@@ -760,10 +784,18 @@ export default function App(): JSX.Element {
                 void openFile(entry, undefined, line, column);
               }}
             />
-          ) : (
+          ) : pane === "tasks" ? (
             <TasksPanel
               onListTasks={() => window.touwa.tasks.list()}
               onRunTask={(label) => window.touwa.tasks.run(label)}
+            />
+          ) : (
+            <TerminalPanel
+              onStart={() => window.touwa.terminal.start()}
+              onWrite={(id, data) => window.touwa.terminal.write(id, data)}
+              onKill={(id) => window.touwa.terminal.kill(id)}
+              onData={(callback) => window.touwa.terminal.onData(callback)}
+              onExit={(callback) => window.touwa.terminal.onExit(callback)}
             />
           ))}
         <main className="editor-groups">

@@ -87,6 +87,18 @@ export type TaskRunResult = {
   durationMs: number;
 };
 
+export type TerminalDataEvent = {
+  id: string;
+  stream: "stdout" | "stderr";
+  text: string;
+};
+
+export type TerminalExitEvent = {
+  id: string;
+  exitCode: number | null;
+  signal: string | null;
+};
+
 export function languageForPath(relativePath: string): string {
   const ext = relativePath.split(".").pop()?.toLowerCase() ?? "";
   switch (ext) {
