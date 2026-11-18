@@ -155,6 +155,10 @@ async function makeGitRepo() {
       { cwd: root },
     );
   await git(["init", "-b", "main"]);
+  // Repo-local identity so product-side `git commit` works on machines
+  // (like CI runners) that have no global git identity configured.
+  await git(["config", "user.name", "Touwa Test"]);
+  await git(["config", "user.email", "test@example.com"]);
   await writeFile(path.join(root, "a.txt"), "hello\n");
   await git(["add", "a.txt"]);
   await git(["commit", "-m", "initial commit"]);
