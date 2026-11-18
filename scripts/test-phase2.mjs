@@ -271,9 +271,14 @@ test("watcher reports subdirectory changes with their full relative path", async
   } finally {
     watcher.close();
   }
-  assert.equal(events.length > 0, true);
+  assert.equal(
+    events.length > 0,
+    true,
+    `received events: ${JSON.stringify(events)}`,
+  );
   assert.equal(
     events.every((e) => e.relativePath === "src/a.ts"),
     true,
+    `received events: ${JSON.stringify(events)}`,
   );
 });
