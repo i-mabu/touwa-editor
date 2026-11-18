@@ -32,6 +32,12 @@ export type SessionExitEvent = {
 export type SessionHooks = {
   onData: (event: SessionDataEvent) => void;
   onExit: (event: SessionExitEvent) => void;
+  /**
+   * Raw stdout chunks, for binary protocols (LSP framing) where a
+   * text decode could split a multi-byte character across chunks.
+   * Called in addition to onData when provided.
+   */
+  onBinaryData?: (chunk: Buffer) => void;
 };
 
 export type StartSessionOptions = {
@@ -41,7 +47,10 @@ export type StartSessionOptions = {
   env?: NodeJS.ProcessEnv;
 };
 
-const MAX_WRITE_LENGTH = 65_536;
+// Generous on purpose: terminal input is tiny, but an LSP didOpen
+// carries a whole document (the LSP service caps documents at 2MB,
+// and JSON framing adds overhead on top of that).
+const MAX_WRITE_LENGTH = 8_000_000;
 const KILL_GRACE_MS = 1_500;
 
 export class SessionManager {
@@ -85,9 +94,10 @@ export class SessionManager {
       child.once("spawn", onSpawn);
     });
     this.sessions.set(id, child);
-    child.stdout.on("data", (chunk: Buffer) =>
-      hooks.onData({ stream: "stdout", text: chunk.toString("utf8") }),
-    );
+    child.stdout.on("data", (chunk: Buffer) => {
+      if (hooks.onBinaryData) hooks.onBinaryData(chunk);
+      hooks.onData({ stream: "stdout", text: chunk.toString("utf8") });
+    });
     child.stderr.on("data", (chunk: Buffer) =>
       hooks.onData({ stream: "stderr", text: chunk.toString("utf8") }),
     );

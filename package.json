@@ -27,7 +27,9 @@
     "@monaco-editor/react": "^4.6.0",
     "monaco-editor": "^0.52.2",
     "react": "^19.3.1",
-    "react-dom": "^19.3.1"
+    "react-dom": "^19.3.1",
+    "typescript-language-server": "^6.1.0",
+    "typescript": "^5.9.3"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
@@ -37,7 +39,6 @@
     "electron": "45.3.1",
     "electron-builder": "^25.1.8",
     "electron-vite": "^6.0.0",
-    "typescript": "^7.0.2",
     "vite": "^6.4.6"
   },
   "build": {

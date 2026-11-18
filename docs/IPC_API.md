@@ -147,6 +147,18 @@ const saved = await window.touwa.file.write(
 
 これはパイプ接続のコンソールであり、PTY ではありません。TTY を必要とする全画面プログラムや生キー入力を読むプロンプトは正しく動作しません（制限は KNOWN_ISSUES と ROADMAP に明記）。
 
+## Language Server API（Phase 3）
+
+### `lsp.open(relativePath, text)` / `lsp.change(relativePath, text)` / `lsp.close(relativePath)`
+
+Renderer が所有するドキュメントテキストを言語サーバーへ同期します。対象は TypeScript / JavaScript ファイルのみで、パスは Main で Workspace 境界を再検証します。サーバー（同梱の typescript-language-server）は最初のドキュメントで遅延起動し、ワークスペース自身の TypeScript を優先します。同期は全文方式で、`open` は未オープンの場合のみ `didOpen`、`change` は未オープンなら `open` として扱う冪等な設計です。
+
+### `lsp.onDiagnostics(callback)` — `lsp:diagnostics` イベント
+
+サーバーが発行した診断を `{relativePath, diagnostics}` で受けます。診断は tsc と共通の `Diagnostic` 形式で、`source` は `"lsp"` です。イベントはドキュメントを同期したことのあるウィンドウにだけ届きます。ドキュメントを閉じると、そのファイルの診断は空で通知され、表示から消えます。
+
+現段階の言語サーバー連携は診断のみです。Completion / Hover / Signature Help は未実装です。
+
 ## Error policy
 
 Renderer にはユーザーが対処できるメッセージを返し、内部パスや秘密情報を不要に露出させません。Main では原因を開発者向けログに記録しますが、token、password、環境変数の値は記録しません。

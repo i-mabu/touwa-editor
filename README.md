@@ -13,6 +13,7 @@ Touwa Editor は、Electron + React + TypeScript + Monaco Editor で構築する
 - 型チェック（Problems パネル: ワークスペースの tsc で診断し、クリックで該当位置へ移動、Phase 3）
 - タスク実行（Tasks パネル: `.touwa/tasks.json` のタスクを手動実行、Phase 3）
 - ターミナル（Terminal パネル: シェルのコンソール、パイプ接続、Phase 3）
+- 言語サーバー診断（同梱の typescript-language-server が開いている TS/JS ファイルを常時チェックし、Problems パネルに表示、Phase 3）
 - Renderer / Preload / Main の責務分離
 - 型付き IPC と Main 側の入力検証
 - `path.resolve` / `realpath` による Workspace 境界チェック
@@ -101,4 +102,4 @@ Semantic Versioning と `vMAJOR.MINOR.PATCH` タグを使用します。リリ�
 
 ## 🗺️ Roadmap
 
-Phase 1 Foundation と Phase 2 Core Editor を実装済みです。Terminal、Git、Language Server、Extensions などは [ROADMAP.md](ROADMAP.md) の後続フェーズです。
+Phase 1 Foundation と Phase 2 Core Editor を実装済みで、Phase 3 Developer Tools を実装中です（Git、診断、Tasks、Terminal、言語サーバーの常駐診断まで対応）。残りの計画は [ROADMAP.md](ROADMAP.md) を参照してください。

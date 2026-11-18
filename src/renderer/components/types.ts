@@ -99,6 +99,23 @@ export type TerminalExitEvent = {
   signal: string | null;
 };
 
+const LSP_EXTENSIONS = new Set([
+  "ts",
+  "tsx",
+  "mts",
+  "cts",
+  "js",
+  "jsx",
+  "mjs",
+  "cjs",
+]);
+
+/** Extensions the bundled TypeScript language server can check. */
+export function isLspLanguagePath(relativePath: string): boolean {
+  const ext = relativePath.split(".").pop()?.toLowerCase() ?? "";
+  return LSP_EXTENSIONS.has(ext);
+}
+
 export function languageForPath(relativePath: string): string {
   const ext = relativePath.split(".").pop()?.toLowerCase() ?? "";
   switch (ext) {

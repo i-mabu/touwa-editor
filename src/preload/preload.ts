@@ -114,6 +114,11 @@ type TerminalExitEvent = {
   signal: string | null;
 };
 
+type LspDiagnosticsEvent = {
+  relativePath: string;
+  diagnostics: Diagnostic[];
+};
+
 const api = {
   workspace: {
     open: (): Promise<{ root: string; entries: FileEntry[] } | null> =>
@@ -209,6 +214,26 @@ const api = {
       };
     },
   },
+  lsp: {
+    open: (relativePath: string, text: string): Promise<void> =>
+      ipcRenderer.invoke("lsp:open", relativePath, text),
+    change: (relativePath: string, text: string): Promise<void> =>
+      ipcRenderer.invoke("lsp:change", relativePath, text),
+    close: (relativePath: string): Promise<void> =>
+      ipcRenderer.invoke("lsp:close", relativePath),
+    onDiagnostics: (
+      callback: (event: LspDiagnosticsEvent) => void,
+    ): (() => void) => {
+      const listener = (
+        _event: Electron.IpcRendererEvent,
+        payload: LspDiagnosticsEvent,
+      ): void => callback(payload);
+      ipcRenderer.on("lsp:diagnostics", listener);
+      return () => {
+        ipcRenderer.removeListener("lsp:diagnostics", listener);
+      };
+    },
+  },
   file: {
     read: (relativePath: string): Promise<FileSnapshot> =>
       ipcRenderer.invoke("file:read", relativePath),
@@ -248,4 +273,5 @@ export type {
   TaskRunResult,
   TerminalDataEvent,
   TerminalExitEvent,
+  LspDiagnosticsEvent,
 };

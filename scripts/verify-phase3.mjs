@@ -45,6 +45,9 @@ const required = [
       "git:fetch",
       "git:pull",
       "git:push",
+      "lsp:open",
+      "lsp:change",
+      "lsp:close",
     ],
   ],
   [
@@ -64,9 +67,42 @@ const required = [
       "terminal:start",
       "terminal:data",
       "terminal:exit",
+      "lsp:open",
+      "lsp:change",
+      "lsp:close",
+      "lsp:diagnostics",
+      "LspDiagnosticsEvent",
       "GitStatus",
       "GitCommit",
     ],
+  ],
+  [
+    "src/main/lsp/lsp-client.ts",
+    [
+      "LspClient",
+      "encodeLspMessage",
+      "LspMessageParser",
+      "Content-Length",
+      "initialize",
+    ],
+  ],
+  [
+    "src/main/lsp/lsp-service.ts",
+    [
+      "LspService",
+      "lspService",
+      "mapPublishDiagnostics",
+      "typescript-language-server",
+      "languageIdForPath",
+    ],
+  ],
+  [
+    "src/renderer/components/ProblemsPanel.tsx",
+    ["PROBLEMS", "lspDiagnostics", "onRunDiagnostics", "onJumpTo"],
+  ],
+  [
+    "src/renderer/components/types.ts",
+    ["isLspLanguagePath", "Diagnostic", "DiagnosticsResult"],
   ],
   [
     "src/renderer/components/GitPanel.tsx",
@@ -96,7 +132,7 @@ const required = [
   ],
   [
     "src/main/process/session-manager.ts",
-    ["SessionManager", "shell: false", "Failed to start"],
+    ["SessionManager", "shell: false", "Failed to start", "onBinaryData"],
   ],
   [
     "src/main/terminal/terminal-service.ts",
@@ -116,6 +152,11 @@ const required = [
       '"problems"',
       "TasksPanel",
       '"tasks"',
+      "lspDiagnostics",
+      "lspSyncChange",
+      "window.touwa.lsp",
+      "TerminalPanel",
+      '"terminal"',
     ],
   ],
 ];

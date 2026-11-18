@@ -45,6 +45,17 @@ import {
   TerminalService,
   shellCandidates,
 } from "../src/main/terminal/terminal-service.ts";
+import {
+  LspClient,
+  LspMessageParser,
+  encodeLspMessage,
+} from "../src/main/lsp/lsp-client.ts";
+import {
+  LspService,
+  languageIdForPath,
+  mapLspDiagnostic,
+  mapPublishDiagnostics,
+} from "../src/main/lsp/lsp-service.ts";
 
 const execFileAsync = promisify(execFile);
 
@@ -576,6 +587,158 @@ test("TerminalService runs the platform shell end to end", async () => {
   await waitFor(() => received.includes("terminal-ok"));
   service.kill(id);
   await waitFor(() => exited);
+});
+
+test("LSP framing survives arbitrary chunk splits and batching", () => {
+  const a = { jsonrpc: "2.0", id: 1, result: { ok: true } };
+  const b = {
+    jsonrpc: "2.0",
+    method: "textDocument/publishDiagnostics",
+    params: { uri: "file:///x.ts", diagnostics: [] },
+  };
+  const stream = Buffer.concat([encodeLspMessage(a), encodeLspMessage(b)]);
+  const parser = new LspMessageParser();
+  const received = [];
+  // Feed one byte at a time: headers and bodies split everywhere.
+  for (const byte of stream) {
+    received.push(...parser.push(Buffer.from([byte])));
+  }
+  assert.equal(received.length, 2);
+  assert.deepEqual(received[0], a);
+  assert.deepEqual(received[1], b);
+  // Multi-byte characters count as bytes, not characters.
+  const japanese = { jsonrpc: "2.0", method: "x", params: { text: "診断" } };
+  const parser2 = new LspMessageParser();
+  assert.deepEqual(parser2.push(encodeLspMessage(japanese)), [japanese]);
+});
+
+test("LspClient completes a full session against a fake server", async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), "touwa-phase3-lsp-fake-"));
+  const serverScript = path.join(dir, "fake-server.mjs");
+  await writeFile(
+    serverScript,
+    `
+let buf = Buffer.alloc(0);
+function send(msg) {
+  const body = JSON.stringify(msg);
+  process.stdout.write("Content-Length: " + Buffer.byteLength(body) + "\\r\\n\\r\\n" + body);
+}
+process.stdin.on("data", (chunk) => {
+  buf = Buffer.concat([buf, chunk]);
+  for (;;) {
+    const end = buf.indexOf("\\r\\n\\r\\n");
+    if (end === -1) break;
+    const len = Number(/Content-Length: (\\d+)/.exec(buf.subarray(0, end).toString())[1]);
+    if (buf.length < end + 4 + len) break;
+    const msg = JSON.parse(buf.subarray(end + 4, end + 4 + len).toString());
+    buf = buf.subarray(end + 4 + len);
+    if (msg.method === "initialize") send({ jsonrpc: "2.0", id: msg.id, result: { capabilities: {} } });
+    else if (msg.method === "textDocument/hover") send({ jsonrpc: "2.0", id: msg.id, result: { contents: "fake hover" } });
+    else if (msg.method === "shutdown") send({ jsonrpc: "2.0", id: msg.id, result: null });
+    else if (msg.method === "textDocument/didOpen") {
+      send({ jsonrpc: "2.0", method: "textDocument/publishDiagnostics", params: {
+        uri: msg.params.textDocument.uri,
+        diagnostics: [{ range: { start: { line: 0, character: 2 }, end: { line: 0, character: 3 } }, severity: 1, code: 9999, message: "fake problem" }],
+      }});
+    }
+  }
+});
+`,
+  );
+  const client = new LspClient(new SessionManager());
+  await client.start({ command: "node", args: [serverScript], cwd: dir });
+  const init = await client.initialize("file://" + dir);
+  assert.deepEqual(init, { capabilities: {} });
+  let published = null;
+  client.onNotification("textDocument/publishDiagnostics", (params) => {
+    published = params;
+  });
+  client.notify("textDocument/didOpen", {
+    textDocument: {
+      uri: "file://" + dir + "/a.ts",
+      languageId: "typescript",
+      version: 1,
+      text: "const a = 1;",
+    },
+  });
+  await waitFor(() => published !== null);
+  assert.equal(published.diagnostics[0].message, "fake problem");
+  const hover = await client.request("textDocument/hover", {});
+  assert.deepEqual(hover, { contents: "fake hover" });
+  await client.stop();
+  assert.equal(client.running, false);
+});
+
+test("LSP diagnostic mapping matches the shared Diagnostic shape", () => {
+  assert.equal(languageIdForPath("src/a.ts"), "typescript");
+  assert.equal(languageIdForPath("src/a.jsx"), "javascriptreact");
+  assert.equal(languageIdForPath("src/a.py"), null);
+  const mapped = mapLspDiagnostic({
+    range: { start: { line: 4, character: 6 } },
+    severity: 1,
+    code: 2322,
+    message: "boom",
+  });
+  assert.deepEqual(mapped, {
+    relativePath: "",
+    line: 5,
+    column: 7,
+    severity: "error",
+    code: "2322",
+    message: "boom",
+    source: "lsp",
+  });
+  const root = path.join(tmpdir(), "ws");
+  const published = mapPublishDiagnostics(root, {
+    uri: "file://" + path.join(root, "src", "a.ts"),
+    diagnostics: [{ severity: 2, message: "warn" }],
+  });
+  assert.equal(published.relativePath, "src/a.ts");
+  assert.equal(published.diagnostics[0].severity, "warning");
+  assert.equal(
+    mapPublishDiagnostics(root, { uri: "file:///outside.ts", diagnostics: [] }),
+    null,
+  );
+});
+
+test("LspService streams real diagnostics from the bundled server", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "touwa-phase3-lsp-real-"));
+  await writeFile(
+    path.join(root, "tsconfig.json"),
+    JSON.stringify({
+      compilerOptions: { strict: true },
+      include: ["src"],
+    }),
+  );
+  await mkdir(path.join(root, "src"), { recursive: true });
+  await writeFile(
+    path.join(root, "src", "bad.ts"),
+    'const n: number = "text";\n',
+  );
+  const service = new LspService(new SessionManager());
+  const byPath = new Map();
+  service.onDiagnostics((relativePath, diagnostics) => {
+    byPath.set(relativePath, diagnostics);
+  });
+  try {
+    await service.openDocument(
+      root,
+      "src/bad.ts",
+      'const n: number = "text";\n',
+    );
+    await waitFor(
+      () => (byPath.get("src/bad.ts") ?? []).some((d) => d.code === "2322"),
+      30_000,
+    );
+    const found = byPath.get("src/bad.ts").find((d) => d.code === "2322");
+    assert.equal(found.severity, "error");
+    assert.equal(found.line, 1);
+    assert.equal(found.source, "lsp");
+    await service.changeDocument(root, "src/bad.ts", "const n: number = 42;\n");
+    await waitFor(() => (byPath.get("src/bad.ts") ?? []).length === 0, 30_000);
+  } finally {
+    await service.dispose();
+  }
 });
 
 test("getGitStatus reports a plain folder as not a repository", async () => {

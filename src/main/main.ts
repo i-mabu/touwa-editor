@@ -3,6 +3,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { registerIpc } from "./ipc/register-ipc";
 import { terminalService } from "./terminal/terminal-service";
+import { lspService } from "./lsp/lsp-service";
 
 function createWindow(): void {
   const window = new BrowserWindow({
@@ -59,4 +60,5 @@ app.on("window-all-closed", () => {
 app.on("before-quit", () => {
   // No shell session may outlive the app.
   terminalService.killAll();
+  void lspService.dispose();
 });

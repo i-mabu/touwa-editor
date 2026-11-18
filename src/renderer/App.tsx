@@ -12,8 +12,12 @@ import GitPanel from "./components/GitPanel";
 import ProblemsPanel from "./components/ProblemsPanel";
 import TasksPanel from "./components/TasksPanel";
 import TerminalPanel from "./components/TerminalPanel";
-import type { FileEntry, SearchMatch } from "./components/types";
-import { languageForPath } from "./components/types";
+import type {
+  Diagnostic,
+  FileEntry,
+  SearchMatch,
+} from "./components/types";
+import { isLspLanguagePath, languageForPath } from "./components/types";
 import {
   activateNextTab,
   activeGroup,
@@ -59,6 +63,12 @@ export default function App(): JSX.Element {
   groupsRef.current = groups;
   const editorsRef = useRef(new Map<string, editor.IStandaloneCodeEditor>());
   const savingTabsRef = useRef(new Set<string>());
+  const [lspDiagnostics, setLspDiagnostics] = useState<
+    Map<string, Diagnostic[]>
+  >(new Map());
+  const lspChangeTimersRef = useRef(
+    new Map<string, ReturnType<typeof setTimeout>>(),
+  );
 
   const tab = activeTab(groups);
 
@@ -81,6 +91,53 @@ export default function App(): JSX.Element {
     }
   }, [pendingJump, groups, reveal]);
 
+  // Language server sync: the renderer owns the text, so it mirrors
+  // open documents to the main process (changes debounced) and
+  // collects the diagnostics the server publishes for the Problems
+  // panel. Only TypeScript / JavaScript files are synced.
+  useEffect(() => {
+    return window.touwa.lsp.onDiagnostics((event) => {
+      setLspDiagnostics((prev) => {
+        const next = new Map(prev);
+        if (event.diagnostics.length === 0) next.delete(event.relativePath);
+        else next.set(event.relativePath, event.diagnostics);
+        return next;
+      });
+    });
+  }, []);
+
+  const lspOpen = useCallback((relativePath: string, text: string): void => {
+    if (!isLspLanguagePath(relativePath)) return;
+    void window.touwa.lsp.open(relativePath, text).catch(() => {});
+  }, []);
+
+  const lspClose = useCallback((relativePath: string): void => {
+    if (!isLspLanguagePath(relativePath)) return;
+    const timer = lspChangeTimersRef.current.get(relativePath);
+    if (timer) {
+      clearTimeout(timer);
+      lspChangeTimersRef.current.delete(relativePath);
+    }
+    void window.touwa.lsp.close(relativePath).catch(() => {});
+  }, []);
+
+  const lspSyncChange = useCallback(
+    (relativePath: string, text: string): void => {
+      if (!isLspLanguagePath(relativePath)) return;
+      const timers = lspChangeTimersRef.current;
+      const pending = timers.get(relativePath);
+      if (pending) clearTimeout(pending);
+      timers.set(
+        relativePath,
+        setTimeout(() => {
+          timers.delete(relativePath);
+          void window.touwa.lsp.change(relativePath, text).catch(() => {});
+        }, 400),
+      );
+    },
+    [],
+  );
+
   async function refreshEntries(): Promise<void> {
     try {
       setEntries(await window.touwa.workspace.list());
@@ -97,6 +154,9 @@ export default function App(): JSX.Element {
         setEntries(result.entries);
         setGroups(emptyGroups());
         setQuickFiles([]);
+        // The main process keys language-server documents by root;
+        // diagnostics from the previous workspace no longer apply.
+        setLspDiagnostics(new Map());
         setStatus("Workspace opened");
       }
     } catch (e) {
@@ -136,6 +196,7 @@ export default function App(): JSX.Element {
             line,
             column: column ?? 1,
           });
+        lspOpen(existing.relativePath, existing.content);
         setStatus(`Opened ${entry.name}`);
         return;
       }
@@ -145,6 +206,7 @@ export default function App(): JSX.Element {
         setGroups((prev) =>
           openTabInGroup(prev, groupId ?? prev.activeGroupId, nextTab),
         );
+        lspOpen(entry.relativePath, snapshot.content);
         if (line)
           setPendingJump({
             relativePath: entry.relativePath,
@@ -237,6 +299,7 @@ export default function App(): JSX.Element {
     try {
       const snapshot = await window.touwa.file.read(current.relativePath);
       setGroups((prev) => reloadTab(prev, current.relativePath, snapshot));
+      lspSyncChange(current.relativePath, snapshot.content);
       setStatus(`Reloaded ${current.relativePath}`);
     } catch (e) {
       setStatus(e instanceof Error ? e.message : "Unable to reload file");
@@ -258,6 +321,14 @@ export default function App(): JSX.Element {
       )
     )
       return;
+    // The same file can be open in another group (split); only close
+    // the language-server document when the last tab for it goes away.
+    const stillOpen = groupsRef.current.groups
+      .flatMap((g) => g.tabs)
+      .some(
+        (t) => t.id !== target.id && t.relativePath === target.relativePath,
+      );
+    if (!stillOpen) lspClose(target.relativePath);
     setGroups((prev) => closeTabState(prev, groupId, target.id));
   }
 
@@ -345,6 +416,7 @@ export default function App(): JSX.Element {
     const dir = entry.relativePath.split("/").slice(0, -1).join("/");
     const newPath = dir === "" ? trimmed : `${dir}/${trimmed}`;
     if (newPath === entry.relativePath) return;
+    const openTabs = groupsRef.current.groups.flatMap((g) => g.tabs);
     try {
       await window.touwa.workspace.rename(entry.relativePath, newPath);
       setGroups((prev) =>
@@ -355,6 +427,18 @@ export default function App(): JSX.Element {
           entry.kind === "directory",
         ),
       );
+      // Re-sync language-server documents under their new paths.
+      for (const openTab of openTabs) {
+        const affected =
+          entry.kind === "directory"
+            ? openTab.relativePath.startsWith(`${entry.relativePath}/`)
+            : openTab.relativePath === entry.relativePath;
+        if (!affected) continue;
+        const renamedPath =
+          newPath + openTab.relativePath.slice(entry.relativePath.length);
+        lspClose(openTab.relativePath);
+        lspOpen(renamedPath, openTab.content);
+      }
       await refreshEntries();
       setExplorerKey((k) => k + 1);
       setStatus(`Renamed to ${newPath}`);
@@ -369,11 +453,22 @@ export default function App(): JSX.Element {
         ? `「${entry.relativePath}」と中身をすべて削除しますか？`
         : `「${entry.relativePath}」を削除しますか？`;
     if (!window.confirm(message)) return;
+    const affectedPaths = new Set(
+      groupsRef.current.groups
+        .flatMap((g) => g.tabs)
+        .filter((t) =>
+          entry.kind === "directory"
+            ? t.relativePath.startsWith(`${entry.relativePath}/`)
+            : t.relativePath === entry.relativePath,
+        )
+        .map((t) => t.relativePath),
+    );
     try {
       await window.touwa.workspace.delete(entry.relativePath);
       setGroups((prev) =>
         closeTabsForPath(prev, entry.relativePath, entry.kind === "directory"),
       );
+      for (const affectedPath of affectedPaths) lspClose(affectedPath);
       await refreshEntries();
       setExplorerKey((k) => k + 1);
       setStatus(`Deleted ${entry.relativePath}`);
@@ -736,6 +831,7 @@ export default function App(): JSX.Element {
                     setGroups((prev) =>
                       reloadTab(prev, file.relativePath, snapshot),
                     );
+                    lspSyncChange(file.relativePath, snapshot.content);
                   }
                 }
                 return result;
@@ -774,6 +870,7 @@ export default function App(): JSX.Element {
             />
           ) : pane === "problems" ? (
             <ProblemsPanel
+              lspDiagnostics={lspDiagnostics}
               onRunDiagnostics={() => window.touwa.diagnostics.run()}
               onJumpTo={(relativePath, line, column) => {
                 const entry: FileEntry = {
@@ -883,16 +980,18 @@ export default function App(): JSX.Element {
                       theme="vs-dark"
                       language={languageForPath(groupTab.relativePath)}
                       value={groupTab.content}
-                      onChange={(v) =>
+                      onChange={(v) => {
+                        const text = v ?? "";
                         setGroups((prev) =>
                           updateTabContent(
                             prev,
                             editorGroup.id,
                             groupTab.id,
-                            v ?? "",
+                            text,
                           ),
-                        )
-                      }
+                        );
+                        lspSyncChange(groupTab.relativePath, text);
+                      }}
                       onMount={(instance) => {
                         editorsRef.current.set(groupTab.id, instance);
                         // Drop the reference when Monaco disposes the

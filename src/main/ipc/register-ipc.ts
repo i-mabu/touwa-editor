@@ -39,6 +39,7 @@ import {
 import { runDiagnostics } from "../diagnostics/diagnostics-service";
 import { loadTasks, runTask } from "../tasks/tasks-service";
 import { terminalService } from "../terminal/terminal-service";
+import { lspService } from "../lsp/lsp-service";
 
 const workspaceRoots = new Map<number, string>();
 const watchers = new Map<number, WorkspaceWatcher>();
@@ -320,6 +321,59 @@ export function registerIpc(): void {
     const killed = terminalService.kill(sessionId);
     terminalOwners.delete(sessionId);
     return killed;
+  });
+  // Language server documents are synced from the renderer (it owns
+  // the text). Diagnostics are forwarded to every window that has
+  // subscribed by opening a document.
+  const lspWatchers = new Set<number>();
+  const parseLspDocument = (
+    event: IpcMainInvokeEvent,
+    relativePath: unknown,
+    text: unknown,
+  ): { root: string; relativePath: string; text: string } => {
+    if (typeof relativePath !== "string" || typeof text !== "string") {
+      throw new Error("Invalid document.");
+    }
+    const sender = event.sender;
+    if (!lspWatchers.has(sender.id)) {
+      lspWatchers.add(sender.id);
+      lspService.onDiagnostics((path, diagnostics) => {
+        if (!sender.isDestroyed()) {
+          sender.send("lsp:diagnostics", {
+            relativePath: path,
+            diagnostics,
+          });
+        }
+      });
+      sender.once("destroyed", () => {
+        lspWatchers.delete(sender.id);
+      });
+    }
+    return {
+      root: requireRoot(sender.id),
+      relativePath,
+      text,
+    };
+  };
+  ipcMain.handle(
+    "lsp:open",
+    async (event, relativePath: unknown, text: unknown) => {
+      const doc = parseLspDocument(event, relativePath, text);
+      await lspService.openDocument(doc.root, doc.relativePath, doc.text);
+    },
+  );
+  ipcMain.handle(
+    "lsp:change",
+    async (event, relativePath: unknown, text: unknown) => {
+      const doc = parseLspDocument(event, relativePath, text);
+      await lspService.changeDocument(doc.root, doc.relativePath, doc.text);
+    },
+  );
+  ipcMain.handle("lsp:close", async (event, relativePath: unknown) => {
+    if (typeof relativePath !== "string") {
+      throw new Error("Invalid document.");
+    }
+    await lspService.closeDocument(requireRoot(event.sender.id), relativePath);
   });
   ipcMain.handle(
     "file:write",

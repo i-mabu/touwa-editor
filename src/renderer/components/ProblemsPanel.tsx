@@ -3,11 +3,14 @@ import type { JSX } from "react";
 import type { Diagnostic, DiagnosticsResult } from "./types";
 
 type ProblemsPanelProps = {
+  /** Resident diagnostics from the language server, keyed by path. */
+  lspDiagnostics: Map<string, Diagnostic[]>;
   onRunDiagnostics: () => Promise<DiagnosticsResult>;
   onJumpTo: (relativePath: string, line: number, column: number) => void;
 };
 
 export default function ProblemsPanel({
+  lspDiagnostics,
   onRunDiagnostics,
   onJumpTo,
 }: ProblemsPanelProps): JSX.Element {
@@ -38,7 +41,12 @@ export default function ProblemsPanel({
     void run();
   }, [run]);
 
-  const diagnostics = result?.diagnostics ?? [];
+  // The tsc run replaces only its own results; language-server
+  // diagnostics for open files are resident and persist across runs.
+  const diagnostics = [
+    ...(result?.diagnostics ?? []),
+    ...[...lspDiagnostics.values()].flat(),
+  ];
   const errors = diagnostics.filter((d) => d.severity === "error").length;
   const warnings = diagnostics.length - errors;
 
@@ -64,7 +72,9 @@ export default function ProblemsPanel({
             </span>
           )}
         </div>
-        {info && <div className="search-info">{info}</div>}
+        {info && diagnostics.length === 0 && (
+          <div className="search-info">{info}</div>
+        )}
         {[...groups.entries()].map(([file, entries]) => (
           <div key={file || "(project)"}>
             <div className="git-section">{file || "プロジェクト全体"}</div>
@@ -93,7 +103,7 @@ export default function ProblemsPanel({
                   </span>
                   <span className="git-path">
                     {diagnostic.line}:{diagnostic.column} {diagnostic.code}{" "}
-                    {diagnostic.message}
+                    {diagnostic.message} [{diagnostic.source}]
                   </span>
                 </button>
               ) : (
@@ -108,7 +118,7 @@ export default function ProblemsPanel({
                     {diagnostic.severity === "error" ? "E" : "W"}
                   </span>
                   <span className="git-path">
-                    {diagnostic.code} {diagnostic.message}
+                    {diagnostic.code} {diagnostic.message} [{diagnostic.source}]
                   </span>
                 </div>
               ),
@@ -122,8 +132,9 @@ export default function ProblemsPanel({
         )}
       </div>
       <div className="search-hint">
-        ワークスペースの TypeScript（tsc --noEmit）でチェックします。保存とは
-        連動していないため、変更後は再チェックしてください。
+        開いている TypeScript / JavaScript
+        ファイルは言語サーバー（LSP）が常時チェックします。「再チェック」は
+        ワークスペース全体を tsc --noEmit でチェックします。
       </div>
     </aside>
   );

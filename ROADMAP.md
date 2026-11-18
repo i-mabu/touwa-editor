@@ -22,7 +22,7 @@ Explorer selection -> model registry -> tab state -> editor group layout
 
 ## Phase 3 — Developer Tools
 
-**Status: ⏳ 一部実装（共通基盤＋Git 読み取り）**
+**Status: ⏳ 一部実装（Git／Diagnostics／Tasks／Terminal／LSP 診断まで）**
 
 Language Server、Completion、Hover、Signature Help、Diagnostics、Git、Integrated Terminal、Tasks、Debugger / DAP を追加します。外部 process は `shell: false`、argv 分離、cwd 検証、timeout、stop、exit code、stdout / stderr 分離を共通要件とします。
 
@@ -39,7 +39,9 @@ Language Server、Completion、Hover、Signature Help、Diagnostics、Git、Inte
 
 - 常駐プロセスセッション基盤（`src/main/process/session-manager.ts`）と Terminal パネル（Ctrl+`）。シェルをワークスペースで起動し、入出力をストリーミングします。現状はパイプ接続のコンソールで PTY ではないため、TTY が必要な全画面プログラムは動作しません。PTY 化は今後の課題です。セッション基盤は言語サーバー接続にも流用できます。
 
-未実装: Language Server 系（Completion / Hover / Signature Help と常駐型の診断）、Debugger / DAP、ターミナルの PTY 化。
+- Language Server 第一弾: 同梱の typescript-language-server による常駐型の診断。開いている TypeScript / JavaScript ファイルを全文同期し（変更は Renderer で 400ms デバウンス）、サーバーが発行する診断を tsc と同じ形式に変換して Problems パネルに常時表示します（出典は [lsp] / [tsc] で区別）。サーバーはワークスペース自身の TypeScript を優先し、無ければ同梱版を使います。プロセス管理はセッション基盤を、フレーミングと JSON-RPC は `src/main/lsp/` を使います。
+
+未実装: Language Server の Completion / Hover / Signature Help、Debugger / DAP、ターミナルの PTY 化。
 
 ## Phase 4 — Extensibility
 
