@@ -1,4 +1,6 @@
+import path from "node:path";
 import { runProcess } from "../process/process-runner.ts";
+import { assertWorkspacePath } from "../workspace/path-security.ts";
 
 // ===== Git integration (Phase 3, read-only) =====
 // All git invocations go through the shared process runner with a
@@ -208,6 +210,93 @@ export async function getGitStatus(root: string): Promise<GitStatus> {
     );
   }
   return parseGitStatusPorcelainV2(result.stdout);
+}
+
+// ===== Write operations =====
+// Paths come from the renderer (it lists what the status reported),
+// so every path is re-validated here: it must be a workspace-relative
+// path that stays inside the workspace, and it is always passed to
+// git after a "--" separator as its own argv element. Mutations
+// return the fresh status so the panel updates in one round trip.
+
+export const MAX_MUTATION_PATHS = 200;
+export const MAX_COMMIT_MESSAGE_LENGTH = 4_000;
+
+function assertMutationPaths(root: string, paths: string[]): string[] {
+  if (!Array.isArray(paths) || paths.length === 0) {
+    throw new Error("No paths were given.");
+  }
+  if (paths.length > MAX_MUTATION_PATHS) {
+    throw new Error("Too many paths.");
+  }
+  return paths.map((relativePath) => {
+    // Validation only; git receives the original relative form so the
+    // pathspec matches what status reported (relative to the root).
+    assertWorkspacePath(root, relativePath);
+    if (relativePath.split(/[\\/]/).includes("..")) {
+      throw new Error("Path is outside the workspace.");
+    }
+    return relativePath.split(path.sep).join("/");
+  });
+}
+
+async function runGitMutation(
+  root: string,
+  args: string[],
+): Promise<GitStatus> {
+  const result = await runGit(root, args);
+  if (result.exitCode !== 0) {
+    throw new Error(
+      `git ${args[0]} failed: ${result.stderr.trim() || "unknown error"}`,
+    );
+  }
+  return getGitStatus(root);
+}
+
+export async function stageFiles(
+  root: string,
+  paths: string[],
+): Promise<GitStatus> {
+  const targets = assertMutationPaths(root, paths);
+  return runGitMutation(root, ["add", "--", ...targets]);
+}
+
+export async function unstageFiles(
+  root: string,
+  paths: string[],
+): Promise<GitStatus> {
+  const targets = assertMutationPaths(root, paths);
+  // `git restore --staged` needs a HEAD to restore from; a repository
+  // with no commits yet has none, where `git rm --cached` is the
+  // equivalent for newly added files.
+  const head = await runGit(root, ["rev-parse", "--verify", "-q", "HEAD"]);
+  if (head.exitCode === 0) {
+    return runGitMutation(root, ["restore", "--staged", "--", ...targets]);
+  }
+  return runGitMutation(root, ["rm", "--cached", "-q", "--", ...targets]);
+}
+
+export async function discardChanges(
+  root: string,
+  paths: string[],
+): Promise<GitStatus> {
+  const targets = assertMutationPaths(root, paths);
+  return runGitMutation(root, ["restore", "--worktree", "--", ...targets]);
+}
+
+export async function commitChanges(
+  root: string,
+  message: string,
+): Promise<GitStatus> {
+  if (
+    typeof message !== "string" ||
+    message.trim().length === 0 ||
+    message.length > MAX_COMMIT_MESSAGE_LENGTH ||
+    message.includes("\0")
+  ) {
+    throw new Error("A commit message is required.");
+  }
+  return runGitMutation(root, ["commit", "-m", message]);
 }
 
 export async function getGitLog(

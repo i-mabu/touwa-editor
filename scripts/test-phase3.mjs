@@ -16,6 +16,10 @@ import {
   parseGitLog,
   getGitStatus,
   getGitLog,
+  stageFiles,
+  unstageFiles,
+  discardChanges,
+  commitChanges,
 } from "../src/main/git/git-service.ts";
 
 const execFileAsync = promisify(execFile);
@@ -173,6 +177,56 @@ test("getGitStatus / getGitLog work against a real repository", async () => {
   assert.equal(log.length, 1);
   assert.equal(log[0].subject, "initial commit");
   assert.equal(log[0].authorName, "Touwa Test");
+});
+
+test("stage / unstage / discard / commit round-trip on a real repository", async () => {
+  const { root } = await makeGitRepo();
+  const byPath = (status) =>
+    new Map(status.entries.map((e) => [e.relativePath, e]));
+
+  // Stage a new file and commit it.
+  await writeFile(path.join(root, "b.txt"), "new\n");
+  let status = await stageFiles(root, ["b.txt"]);
+  assert.equal(byPath(status).get("b.txt")?.indexStatus, "A");
+  status = await commitChanges(root, "add b");
+  assert.equal(status.entries.length, 0);
+  let log = await getGitLog(root);
+  assert.equal(log[0].subject, "add b");
+  assert.equal(log.length, 2);
+
+  // Modify, stage, then unstage: the change falls back to worktree-only.
+  await appendFile(path.join(root, "b.txt"), "more\n");
+  status = await stageFiles(root, ["b.txt"]);
+  assert.equal(byPath(status).get("b.txt")?.indexStatus, "M");
+  status = await unstageFiles(root, ["b.txt"]);
+  assert.equal(byPath(status).get("b.txt")?.indexStatus, ".");
+  assert.equal(byPath(status).get("b.txt")?.worktreeStatus, "M");
+
+  // Discard restores the committed content.
+  status = await discardChanges(root, ["b.txt"]);
+  assert.equal(status.entries.length, 0);
+});
+
+test("unstage works in a repository with no commits yet", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "touwa-phase3-fresh-"));
+  await execFileAsync("git", ["init", "-b", "main"], { cwd: root });
+  await writeFile(path.join(root, "a.txt"), "hello\n");
+  let status = await stageFiles(root, ["a.txt"]);
+  assert.equal(status.entries[0]?.indexStatus, "A");
+  status = await unstageFiles(root, ["a.txt"]);
+  assert.equal(status.entries[0]?.kind, "untracked");
+});
+
+test("git mutations validate their input", async () => {
+  const { root } = await makeGitRepo();
+  await assert.rejects(() => stageFiles(root, []), /No paths/);
+  await assert.rejects(() => stageFiles(root, ["../outside.txt"]), /outside/);
+  await assert.rejects(() => stageFiles(root, ["/abs/path.txt"]), /relative/);
+  await assert.rejects(() => commitChanges(root, "   "), /message is required/);
+  await assert.rejects(
+    () => commitChanges(root, "nothing staged"),
+    /git commit failed/,
+  );
 });
 
 test("getGitStatus reports a plain folder as not a repository", async () => {

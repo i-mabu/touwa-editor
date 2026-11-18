@@ -29,9 +29,10 @@ Language Server、Completion、Hover、Signature Help、Diagnostics、Git、Inte
 実装済み:
 
 - 共通の外部プロセス実行サービス（`src/main/process/process-runner.ts`）。上記の共通要件を一箇所に集約し、コマンドは Main のサービスが選ぶ素の実行ファイル名のみ、出力は stdout / stderr 分離＋上限付きで捕捉します。
-- Git パネル（Source Control、Ctrl+Shift+G）。`git status --porcelain=v2 --branch` のパースによるブランチ・ahead/behind・ステージ済み／変更／未追跡の一覧と、最近のコミット（最大100件）の表示。読み取り専用で、変更エントリのクリックでファイルを開けます。
+- Git パネル（Source Control、Ctrl+Shift+G）。`git status --porcelain=v2 --branch` のパースによるブランチ・ahead/behind・ステージ済み／変更／未追跡の一覧と、最近のコミット（最大100件）の表示。変更エントリのクリックでファイルを開けます。
+- Git の書き込み操作: ステージング、ステージ取り消し、変更の破棄（確認ダイアログ付き）、コミット。パスは Main で Workspace 境界を再検証し、`--` 区切りで argv として渡します。
 
-未実装: Git のステージング／コミット等の書き込み操作、Language Server 系（Completion / Hover / Signature Help / Diagnostics）、Integrated Terminal、Tasks、Debugger / DAP。
+未実装: Git の push / pull、Language Server 系（Completion / Hover / Signature Help / Diagnostics）、Integrated Terminal、Tasks、Debugger / DAP。
 
 ## Phase 4 — Extensibility
 

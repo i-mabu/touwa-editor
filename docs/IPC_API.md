@@ -101,7 +101,7 @@ const saved = await window.touwa.file.write(
 );
 ```
 
-## Git API（Phase 3、読み取り専用）
+## Git API（Phase 3）
 
 ### `git.status()`
 
@@ -110,6 +110,14 @@ const saved = await window.touwa.file.write(
 ### `git.log(limit?)`
 
 最近のコミットを最大100件（既定30件）返します。戻り値は `GitCommit[]`（ハッシュ、短縮ハッシュ、件名、作者、日時）です。リポジトリでない、またはコミットが無い場合は空配列を返します。`limit` は Main で型と範囲を検証します。
+
+### `git.stage(paths)` / `git.unstage(paths)` / `git.discard(paths)`
+
+指定した Workspace 相対パス（最大200件）をステージ、ステージ取り消し、作業ツリー変更の破棄します。パスは Main で件数・型を検証したうえで、Workspace 境界内であることを再検証し、`--` の後ろに個別の argv として渡します。ステージ取り消しはコミットがまだ無いリポジトリでは `git rm --cached` に切り替えます。いずれも実行後の `GitStatus` を返します。破棄は Renderer 側で確認ダイアログを出してから呼びます。
+
+### `git.commit(message)`
+
+ステージ済みの変更をコミットします。メッセージは Main で空でないことと長さ上限を検証し、`-m` の argv としてそのまま渡します。実行後の `GitStatus` を返します。push / pull は未対応です。
 
 ## Error policy
 

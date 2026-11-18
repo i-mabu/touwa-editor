@@ -687,6 +687,12 @@ export default function App(): JSX.Element {
             <GitPanel
               onLoadStatus={() => window.touwa.git.status()}
               onLoadLog={(limit) => window.touwa.git.log(limit)}
+              onStage={(paths) => window.touwa.git.stage(paths)}
+              onUnstage={(paths) => window.touwa.git.unstage(paths)}
+              onDiscard={(paths) => window.touwa.git.discard(paths)}
+              onCommit={(commitMessage) =>
+                window.touwa.git.commit(commitMessage)
+              }
               onOpenFile={(relativePath) => {
                 const entry: FileEntry = {
                   name: relativePath.split("/").pop() ?? relativePath,

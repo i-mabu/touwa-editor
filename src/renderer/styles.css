@@ -566,3 +566,59 @@ button {
   font-size: 11px;
   padding-top: 1px;
 }
+.git-entry-row {
+  display: flex;
+  align-items: center;
+}
+.git-entry-row .git-entry {
+  flex: 1;
+  min-width: 0;
+}
+.git-row-action {
+  flex-shrink: 0;
+  background: transparent;
+  border: 1px solid transparent;
+  color: #91a0b5;
+  border-radius: 4px;
+  width: 22px;
+  height: 22px;
+  line-height: 1;
+  cursor: pointer;
+  font-size: 13px;
+}
+.git-row-action:hover {
+  background: #25334a;
+  color: #fff;
+  border-color: #3a4b64;
+}
+.git-row-action:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.git-commit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0 6px 4px;
+}
+.git-commit-form textarea {
+  background: #10141c;
+  border: 1px solid #3a4b64;
+  color: #dbe7f7;
+  border-radius: 4px;
+  padding: 6px 8px;
+  font-size: 12px;
+  resize: vertical;
+}
+.git-commit-form button {
+  background: #283448;
+  border: 1px solid #3a4b64;
+  color: #dbe7f7;
+  border-radius: 4px;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+.git-commit-form button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}

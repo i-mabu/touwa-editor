@@ -18,10 +18,15 @@ import {
   type WorkspaceWatcher,
 } from "../workspace/watcher";
 import {
+  commitChanges,
+  discardChanges,
   getGitLog,
   getGitStatus,
+  stageFiles,
+  unstageFiles,
   DEFAULT_LOG_ENTRIES,
   MAX_LOG_ENTRIES,
+  MAX_MUTATION_PATHS,
 } from "../git/git-service";
 
 const workspaceRoots = new Map<number, string>();
@@ -195,6 +200,32 @@ export function registerIpc(): void {
     }
     const count = Math.max(1, Math.min(Math.floor(limit), MAX_LOG_ENTRIES));
     return getGitLog(requireRoot(event.sender.id), count);
+  });
+  const parseGitPaths = (value: unknown): string[] => {
+    if (
+      !Array.isArray(value) ||
+      value.length === 0 ||
+      value.length > MAX_MUTATION_PATHS ||
+      value.some((entry) => typeof entry !== "string")
+    ) {
+      throw new Error("Invalid path list.");
+    }
+    return value as string[];
+  };
+  ipcMain.handle("git:stage", async (event, paths: unknown) =>
+    stageFiles(requireRoot(event.sender.id), parseGitPaths(paths)),
+  );
+  ipcMain.handle("git:unstage", async (event, paths: unknown) =>
+    unstageFiles(requireRoot(event.sender.id), parseGitPaths(paths)),
+  );
+  ipcMain.handle("git:discard", async (event, paths: unknown) =>
+    discardChanges(requireRoot(event.sender.id), parseGitPaths(paths)),
+  );
+  ipcMain.handle("git:commit", async (event, message: unknown) => {
+    if (typeof message !== "string") {
+      throw new Error("Invalid commit message.");
+    }
+    return commitChanges(requireRoot(event.sender.id), message);
   });
   ipcMain.handle(
     "file:write",

@@ -5,8 +5,14 @@ import type { GitCommit, GitStatus, GitStatusEntry } from "./types";
 type GitPanelProps = {
   onLoadStatus: () => Promise<GitStatus>;
   onLoadLog: (limit: number) => Promise<GitCommit[]>;
+  onStage: (paths: string[]) => Promise<GitStatus>;
+  onUnstage: (paths: string[]) => Promise<GitStatus>;
+  onDiscard: (paths: string[]) => Promise<GitStatus>;
+  onCommit: (message: string) => Promise<GitStatus>;
   onOpenFile: (relativePath: string) => void;
 };
+
+type Section = "staged" | "unstaged" | "ignored";
 
 function badgeFor(entry: GitStatusEntry): { label: string; className: string } {
   if (entry.kind === "untracked")
@@ -43,27 +49,37 @@ function formatDate(authorTime: number): string {
 export default function GitPanel({
   onLoadStatus,
   onLoadLog,
+  onStage,
+  onUnstage,
+  onDiscard,
+  onCommit,
   onOpenFile,
 }: GitPanelProps): JSX.Element {
   const [status, setStatus] = useState<GitStatus | null>(null);
   const [commits, setCommits] = useState<GitCommit[]>([]);
   const [info, setInfo] = useState("読み込み中…");
   const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
+
+  const refreshLog = useCallback(async (): Promise<void> => {
+    try {
+      setCommits(await onLoadLog(30));
+    } catch {
+      // The status error (if any) is the one worth showing.
+    }
+  }, [onLoadLog]);
 
   const refresh = useCallback(async (): Promise<void> => {
     setBusy(true);
     try {
-      const [nextStatus, nextLog] = await Promise.all([
-        onLoadStatus(),
-        onLoadLog(30),
-      ]);
+      const nextStatus = await onLoadStatus();
       setStatus(nextStatus);
-      setCommits(nextLog);
       setInfo(
         nextStatus.isRepository
           ? ""
           : "このフォルダは Git リポジトリではありません（git が見つからない場合も同じ表示になります）",
       );
+      await refreshLog();
     } catch (e) {
       setInfo(
         e instanceof Error ? e.message : "Git 情報を取得できませんでした",
@@ -71,11 +87,51 @@ export default function GitPanel({
     } finally {
       setBusy(false);
     }
-  }, [onLoadStatus, onLoadLog]);
+  }, [onLoadStatus, refreshLog]);
 
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  async function mutate(
+    action: (paths: string[]) => Promise<GitStatus>,
+    paths: string[],
+  ): Promise<void> {
+    setBusy(true);
+    try {
+      setStatus(await action(paths));
+      setInfo("");
+    } catch (e) {
+      setInfo(e instanceof Error ? e.message : "Git 操作に失敗しました");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function runCommit(): Promise<void> {
+    if (!message.trim()) return;
+    setBusy(true);
+    try {
+      setStatus(await onCommit(message));
+      setMessage("");
+      setInfo("");
+      await refreshLog();
+    } catch (e) {
+      setInfo(e instanceof Error ? e.message : "コミットに失敗しました");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function runDiscard(entry: GitStatusEntry): void {
+    if (
+      !window.confirm(
+        `「${entry.relativePath}」への変更を破棄します。元に戻せません。よろしいですか？`,
+      )
+    )
+      return;
+    void mutate(onDiscard, [entry.relativePath]);
+  }
 
   const staged = (status?.entries ?? []).filter(
     (e) =>
@@ -89,22 +145,58 @@ export default function GitPanel({
   );
   const ignored = (status?.entries ?? []).filter((e) => e.kind === "ignored");
 
-  function renderEntry(entry: GitStatusEntry): JSX.Element {
+  function renderEntry(entry: GitStatusEntry, section: Section): JSX.Element {
     const badge = badgeFor(entry);
     return (
-      <button
-        key={`${entry.kind}:${entry.relativePath}`}
-        className="git-entry"
-        title={
-          entry.originalPath
-            ? `${entry.originalPath} → ${entry.relativePath}`
-            : entry.relativePath
-        }
-        onClick={() => onOpenFile(entry.relativePath)}
+      <div
+        key={`${section}:${entry.kind}:${entry.relativePath}`}
+        className="git-entry-row"
       >
-        <span className={badge.className}>{badge.label}</span>
-        <span className="git-path">{entry.relativePath}</span>
-      </button>
+        <button
+          className="git-entry"
+          title={
+            entry.originalPath
+              ? `${entry.originalPath} → ${entry.relativePath}`
+              : entry.relativePath
+          }
+          onClick={() => onOpenFile(entry.relativePath)}
+        >
+          <span className={badge.className}>{badge.label}</span>
+          <span className="git-path">{entry.relativePath}</span>
+        </button>
+        {section === "staged" && (
+          <button
+            className="git-row-action"
+            title="ステージを取り消す"
+            disabled={busy}
+            onClick={() => void mutate(onUnstage, [entry.relativePath])}
+          >
+            −
+          </button>
+        )}
+        {section === "unstaged" && (
+          <>
+            <button
+              className="git-row-action"
+              title="ステージする"
+              disabled={busy}
+              onClick={() => void mutate(onStage, [entry.relativePath])}
+            >
+              +
+            </button>
+            {entry.kind === "tracked" && entry.worktreeStatus !== "." && (
+              <button
+                className="git-row-action"
+                title="変更を破棄する"
+                disabled={busy}
+                onClick={() => runDiscard(entry)}
+              >
+                ↩
+              </button>
+            )}
+          </>
+        )}
+      </div>
     );
   }
 
@@ -126,14 +218,29 @@ export default function GitPanel({
         {info && <div className="search-info">{info}</div>}
         {status?.isRepository && (
           <>
+            <div className="git-commit-form">
+              <textarea
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder="コミットメッセージ"
+                aria-label="コミットメッセージ"
+                rows={2}
+              />
+              <button
+                disabled={busy || staged.length === 0 || !message.trim()}
+                onClick={() => void runCommit()}
+              >
+                コミット（ステージ済み {staged.length} 件）
+              </button>
+            </div>
             <div className="git-section">ステージ済み ({staged.length})</div>
-            {staged.map(renderEntry)}
+            {staged.map((entry) => renderEntry(entry, "staged"))}
             <div className="git-section">変更 ({unstaged.length})</div>
-            {unstaged.map(renderEntry)}
+            {unstaged.map((entry) => renderEntry(entry, "unstaged"))}
             {ignored.length > 0 && (
               <>
                 <div className="git-section">無視 ({ignored.length})</div>
-                {ignored.map(renderEntry)}
+                {ignored.map((entry) => renderEntry(entry, "ignored"))}
               </>
             )}
             {status.truncated && (
@@ -158,8 +265,8 @@ export default function GitPanel({
         )}
       </div>
       <div className="search-hint">
-        Git パネルは表示専用です（Phase
-        3）。コミットやステージングは今後の対応予定です。
+        ステージングとコミットに対応しています。push / pull
+        は今後の対応予定です。
       </div>
     </aside>
   );

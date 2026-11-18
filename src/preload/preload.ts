@@ -107,6 +107,14 @@ const api = {
     status: (): Promise<GitStatus> => ipcRenderer.invoke("git:status"),
     log: (limit?: number): Promise<GitCommit[]> =>
       ipcRenderer.invoke("git:log", limit ?? null),
+    stage: (paths: string[]): Promise<GitStatus> =>
+      ipcRenderer.invoke("git:stage", paths),
+    unstage: (paths: string[]): Promise<GitStatus> =>
+      ipcRenderer.invoke("git:unstage", paths),
+    discard: (paths: string[]): Promise<GitStatus> =>
+      ipcRenderer.invoke("git:discard", paths),
+    commit: (message: string): Promise<GitStatus> =>
+      ipcRenderer.invoke("git:commit", message),
   },
   file: {
     read: (relativePath: string): Promise<FileSnapshot> =>
