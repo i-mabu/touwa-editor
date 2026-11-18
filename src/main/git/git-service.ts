@@ -45,6 +45,7 @@ export type GitCommit = {
 
 const MAX_STATUS_ENTRIES = 1_000;
 const GIT_TIMEOUT_MS = 15_000;
+const GIT_NETWORK_TIMEOUT_MS = 60_000;
 export const MAX_LOG_ENTRIES = 100;
 export const DEFAULT_LOG_ENTRIES = 30;
 
@@ -175,12 +176,14 @@ export function parseGitLog(output: string): GitCommit[] {
 async function runGit(
   root: string,
   args: string[],
+  options?: { timeoutMs?: number; env?: NodeJS.ProcessEnv },
 ): Promise<{ exitCode: number | null; stdout: string; stderr: string }> {
   const result = await runProcess({
     command: "git",
     args: ["--no-optional-locks", "-c", "core.quotepath=false", ...args],
     cwd: root,
-    timeoutMs: GIT_TIMEOUT_MS,
+    timeoutMs: options?.timeoutMs ?? GIT_TIMEOUT_MS,
+    env: options?.env,
   });
   return result;
 }
@@ -282,6 +285,51 @@ export async function discardChanges(
 ): Promise<GitStatus> {
   const targets = assertMutationPaths(root, paths);
   return runGitMutation(root, ["restore", "--worktree", "--", ...targets]);
+}
+
+// ===== Remote sync =====
+// Network operations get a longer timeout and GIT_TERMINAL_PROMPT=0:
+// the editor has no terminal to answer credential prompts with, so a
+// prompt must fail fast with git's own error instead of hanging until
+// the timeout. Authentication itself is left to the user's git
+// configuration (credential helpers, SSH keys) — the editor never
+// sees or stores credentials.
+
+async function runGitSync(root: string, args: string[]): Promise<GitStatus> {
+  const result = await runGit(root, args, {
+    timeoutMs: GIT_NETWORK_TIMEOUT_MS,
+    env: { ...process.env, GIT_TERMINAL_PROMPT: "0" },
+  });
+  if (result.exitCode !== 0) {
+    throw new Error(
+      `git ${args[0]} failed: ${result.stderr.trim() || "unknown error"}`,
+    );
+  }
+  return getGitStatus(root);
+}
+
+export async function fetchRemote(root: string): Promise<GitStatus> {
+  return runGitSync(root, ["fetch"]);
+}
+
+export async function pullChanges(root: string): Promise<GitStatus> {
+  // Fast-forward only: a diverged branch is reported as an error
+  // instead of silently creating a merge commit from the editor.
+  return runGitSync(root, ["pull", "--ff-only"]);
+}
+
+export async function pushChanges(root: string): Promise<GitStatus> {
+  const status = await getGitStatus(root);
+  if (!status.isRepository) {
+    throw new Error("Not a git repository.");
+  }
+  // First push of a branch sets its upstream to origin/<branch>;
+  // afterwards a plain push follows the configured upstream.
+  const args =
+    status.upstream !== null || status.branch === null
+      ? ["push"]
+      : ["push", "-u", "origin", status.branch];
+  return runGitSync(root, args);
 }
 
 export async function commitChanges(

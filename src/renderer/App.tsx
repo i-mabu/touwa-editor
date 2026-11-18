@@ -693,6 +693,9 @@ export default function App(): JSX.Element {
               onCommit={(commitMessage) =>
                 window.touwa.git.commit(commitMessage)
               }
+              onFetch={() => window.touwa.git.fetch()}
+              onPull={() => window.touwa.git.pull()}
+              onPush={() => window.touwa.git.push()}
               onOpenFile={(relativePath) => {
                 const entry: FileEntry = {
                   name: relativePath.split("/").pop() ?? relativePath,

@@ -69,6 +69,21 @@ function assertValidArgs(args: string[]): void {
   }
 }
 
+function assertValidEnv(env: NodeJS.ProcessEnv | undefined): void {
+  if (env === undefined) return;
+  for (const [key, value] of Object.entries(env)) {
+    if (value === undefined) continue;
+    if (
+      key.length === 0 ||
+      key.includes("=") ||
+      key.includes("\0") ||
+      value.includes("\0")
+    ) {
+      throw new Error("Invalid process environment.");
+    }
+  }
+}
+
 function assertValidCwd(cwd: string): void {
   if (typeof cwd !== "string" || cwd.length === 0) {
     throw new Error("A working directory is required.");
@@ -98,6 +113,7 @@ export async function runProcess(
   assertValidCommand(options.command);
   assertValidArgs(options.args);
   assertValidCwd(options.cwd);
+  assertValidEnv(options.env);
   const timeoutMs = clampTimeout(options.timeoutMs);
   const maxOutputBytes = options.maxOutputBytes ?? DEFAULT_MAX_OUTPUT_BYTES;
   if (

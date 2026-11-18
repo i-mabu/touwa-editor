@@ -20,8 +20,11 @@ import {
 import {
   commitChanges,
   discardChanges,
+  fetchRemote,
   getGitLog,
   getGitStatus,
+  pullChanges,
+  pushChanges,
   stageFiles,
   unstageFiles,
   DEFAULT_LOG_ENTRIES,
@@ -227,6 +230,15 @@ export function registerIpc(): void {
     }
     return commitChanges(requireRoot(event.sender.id), message);
   });
+  ipcMain.handle("git:fetch", async (event) =>
+    fetchRemote(requireRoot(event.sender.id)),
+  );
+  ipcMain.handle("git:pull", async (event) =>
+    pullChanges(requireRoot(event.sender.id)),
+  );
+  ipcMain.handle("git:push", async (event) =>
+    pushChanges(requireRoot(event.sender.id)),
+  );
   ipcMain.handle(
     "file:write",
     async (

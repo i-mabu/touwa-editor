@@ -464,7 +464,8 @@ button {
 .git-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  flex-wrap: wrap;
+  gap: 6px;
   padding: 0 6px 8px;
 }
 .git-actions button {

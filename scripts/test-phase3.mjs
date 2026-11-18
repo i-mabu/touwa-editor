@@ -20,6 +20,9 @@ import {
   unstageFiles,
   discardChanges,
   commitChanges,
+  fetchRemote,
+  pullChanges,
+  pushChanges,
 } from "../src/main/git/git-service.ts";
 
 const execFileAsync = promisify(execFile);
@@ -41,6 +44,29 @@ test("runProcess captures stdout/stderr separately and reports the exit code", a
     cwd: tmpdir(),
   });
   assert.equal(failing.exitCode, 3);
+});
+
+test("runProcess passes extra environment variables to the child", async () => {
+  const result = await runProcess({
+    command: "node",
+    args: [
+      "-e",
+      "process.stdout.write(process.env.TOUWA_PHASE3_ENV ?? 'missing')",
+    ],
+    cwd: tmpdir(),
+    env: { ...process.env, TOUWA_PHASE3_ENV: "hello-env" },
+  });
+  assert.equal(result.stdout, "hello-env");
+  await assert.rejects(
+    () =>
+      runProcess({
+        command: "node",
+        args: [],
+        cwd: tmpdir(),
+        env: { "BAD=KEY": "x" },
+      }),
+    /Invalid process environment/,
+  );
 });
 
 test("runProcess enforces the timeout and the output cap", async () => {
@@ -231,6 +257,63 @@ test("git mutations validate their input", async () => {
     () => commitChanges(root, "nothing staged"),
     /git commit failed/,
   );
+});
+
+test("fetch / pull / push sync against a local bare remote", async () => {
+  const base = await mkdtemp(path.join(tmpdir(), "touwa-phase3-remote-"));
+  const remote = path.join(base, "remote.git");
+  await execFileAsync("git", ["init", "--bare", "-b", "main", remote]);
+
+  const { root: a, git: gitA } = await makeGitRepo();
+  await gitA(["remote", "add", "origin", remote]);
+
+  // First push sets the upstream automatically.
+  let status = await pushChanges(a);
+  assert.equal(status.upstream, "origin/main");
+  assert.equal(status.ahead, 0);
+
+  // Clone B from the remote and give it a local identity.
+  const b = path.join(base, "b");
+  await execFileAsync("git", ["clone", remote, b]);
+  const gitB = (args) =>
+    execFileAsync(
+      "git",
+      [
+        "-c",
+        "user.name=Touwa Test",
+        "-c",
+        "user.email=test@example.com",
+        ...args,
+      ],
+      { cwd: b },
+    );
+  await gitB(["config", "user.name", "Touwa Test"]);
+  await gitB(["config", "user.email", "test@example.com"]);
+
+  // A commits and pushes a second change.
+  await appendFile(path.join(a, "a.txt"), "second\n");
+  await stageFiles(a, ["a.txt"]);
+  await commitChanges(a, "second commit");
+  await pushChanges(a);
+
+  // B fetches (behind becomes visible), then pulls fast-forward.
+  status = await fetchRemote(b);
+  assert.equal(status.behind, 1);
+  status = await pullChanges(b);
+  assert.equal(status.behind, 0);
+  const log = await getGitLog(b);
+  assert.equal(log[0].subject, "second commit");
+
+  // A diverged pull is rejected instead of merging silently.
+  await writeFile(path.join(b, "local.txt"), "local\n");
+  await gitB(["add", "local.txt"]);
+  await gitB(["commit", "-m", "local commit"]);
+  await appendFile(path.join(a, "a.txt"), "third\n");
+  await stageFiles(a, ["a.txt"]);
+  await commitChanges(a, "third commit");
+  await pushChanges(a);
+  await fetchRemote(b);
+  await assert.rejects(() => pullChanges(b), /git pull failed/);
 });
 
 test("getGitStatus reports a plain folder as not a repository", async () => {

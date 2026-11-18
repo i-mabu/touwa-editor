@@ -9,6 +9,9 @@ type GitPanelProps = {
   onUnstage: (paths: string[]) => Promise<GitStatus>;
   onDiscard: (paths: string[]) => Promise<GitStatus>;
   onCommit: (message: string) => Promise<GitStatus>;
+  onFetch: () => Promise<GitStatus>;
+  onPull: () => Promise<GitStatus>;
+  onPush: () => Promise<GitStatus>;
   onOpenFile: (relativePath: string) => void;
 };
 
@@ -53,6 +56,9 @@ export default function GitPanel({
   onUnstage,
   onDiscard,
   onCommit,
+  onFetch,
+  onPull,
+  onPush,
   onOpenFile,
 }: GitPanelProps): JSX.Element {
   const [status, setStatus] = useState<GitStatus | null>(null);
@@ -118,6 +124,22 @@ export default function GitPanel({
       await refreshLog();
     } catch (e) {
       setInfo(e instanceof Error ? e.message : "コミットに失敗しました");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function runSync(
+    action: () => Promise<GitStatus>,
+    doneMessage: string,
+  ): Promise<void> {
+    setBusy(true);
+    try {
+      setStatus(await action());
+      setInfo(doneMessage);
+      await refreshLog();
+    } catch (e) {
+      setInfo(e instanceof Error ? e.message : "同期に失敗しました");
     } finally {
       setBusy(false);
     }
@@ -208,6 +230,24 @@ export default function GitPanel({
           <button disabled={busy} onClick={() => void refresh()}>
             更新
           </button>
+          <button
+            disabled={busy || !status?.isRepository}
+            onClick={() => void runSync(onFetch, "フェッチが完了しました")}
+          >
+            フェッチ
+          </button>
+          <button
+            disabled={busy || !status?.isRepository}
+            onClick={() => void runSync(onPull, "プルが完了しました")}
+          >
+            プル
+          </button>
+          <button
+            disabled={busy || !status?.isRepository}
+            onClick={() => void runSync(onPush, "プッシュが完了しました")}
+          >
+            プッシュ
+          </button>
           {status?.isRepository && (
             <span className="git-branch">
               {status.branch ?? "(detached HEAD)"}
@@ -265,8 +305,9 @@ export default function GitPanel({
         )}
       </div>
       <div className="search-hint">
-        ステージングとコミットに対応しています。push / pull
-        は今後の対応予定です。
+        ステージング、コミット、フェッチ、プル（fast-forward
+        のみ）、プッシュに対応しています。認証は Git
+        の設定（SSH鍵や資格情報ヘルパー）を使います。
       </div>
     </aside>
   );

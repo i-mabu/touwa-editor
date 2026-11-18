@@ -117,7 +117,11 @@ const saved = await window.touwa.file.write(
 
 ### `git.commit(message)`
 
-ステージ済みの変更をコミットします。メッセージは Main で空でないことと長さ上限を検証し、`-m` の argv としてそのまま渡します。実行後の `GitStatus` を返します。push / pull は未対応です。
+ステージ済みの変更をコミットします。メッセージは Main で空でないことと長さ上限を検証し、`-m` の argv としてそのまま渡します。実行後の `GitStatus` を返します。
+
+### `git.fetch()` / `git.pull()` / `git.push()`
+
+リモートとの同期を行い、実行後の `GitStatus` を返します。プルは fast-forward のみ（分岐した場合はエラーとして報告し、自動マージしません）。プッシュは upstream が無いブランチでは `origin` へ upstream を設定して送ります。ネットワーク操作のため timeout は60秒、`GIT_TERMINAL_PROMPT=0` で資格情報プロンプトを即時失敗させます。認証はユーザーの Git 設定（SSH 鍵、資格情報ヘルパー）に委ね、エディタが資格情報を扱うことはありません。
 
 ## Error policy
 

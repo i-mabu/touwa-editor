@@ -115,6 +115,9 @@ const api = {
       ipcRenderer.invoke("git:discard", paths),
     commit: (message: string): Promise<GitStatus> =>
       ipcRenderer.invoke("git:commit", message),
+    fetch: (): Promise<GitStatus> => ipcRenderer.invoke("git:fetch"),
+    pull: (): Promise<GitStatus> => ipcRenderer.invoke("git:pull"),
+    push: (): Promise<GitStatus> => ipcRenderer.invoke("git:push"),
   },
   file: {
     read: (relativePath: string): Promise<FileSnapshot> =>
