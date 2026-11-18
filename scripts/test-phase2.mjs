@@ -271,13 +271,19 @@ test("watcher reports subdirectory changes with their full relative path", async
   } finally {
     watcher.close();
   }
+  // The regression this guards: a subdirectory change must carry its
+  // full relative path ("src/a.ts"), not the bare file name ("a.ts").
+  // Windows recursive fs.watch also reports a change for the parent
+  // directory itself ("src"), so assert presence of the file event and
+  // absence of the bare name instead of requiring every event to be
+  // the file.
   assert.equal(
-    events.length > 0,
+    events.some((e) => e.relativePath === "src/a.ts"),
     true,
     `received events: ${JSON.stringify(events)}`,
   );
   assert.equal(
-    events.every((e) => e.relativePath === "src/a.ts"),
+    events.every((e) => e.relativePath !== "a.ts"),
     true,
     `received events: ${JSON.stringify(events)}`,
   );
