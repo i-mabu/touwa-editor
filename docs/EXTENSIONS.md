@@ -28,17 +28,17 @@ Extensions パネル（Ctrl+Shift+X）に一覧表示されます。現時点で
 }
 ```
 
-| フィールド | 必須 | 説明 |
-| --- | --- | --- |
-| `name` | ○ | 英数字と `-._` で始まる識別子（最大128文字） |
-| `version` | ○ | `x.y.z` 形式 |
-| `publisher` | | 公開者名。ID は `publisher.name` になります |
-| `displayName` / `description` | | パネル表示用 |
-| `engines.touwa` | | 対応する Touwa のバージョン範囲（`^x.y.z` / `x.y.z` / `*`）。解釈できない範囲は非対応として扱います |
-| `main` | | エントリポイント（将来の Extension Host 用） |
-| `activationEvents` | | 起動イベント（最大32件） |
-| `capabilities` | | 必要な権限の宣言（下記）。未知の権限は警告として表示され、許可されません |
-| `contributes.commands` | | 提供するコマンド（最大64件） |
+| フィールド                    | 必須 | 説明                                                                                                |
+| ----------------------------- | ---- | --------------------------------------------------------------------------------------------------- |
+| `name`                        | ○    | 英数字と `-._` で始まる識別子（最大128文字）                                                        |
+| `version`                     | ○    | `x.y.z` 形式                                                                                        |
+| `publisher`                   |      | 公開者名。ID は `publisher.name` になります                                                         |
+| `displayName` / `description` |      | パネル表示用                                                                                        |
+| `engines.touwa`               |      | 対応する Touwa のバージョン範囲（`^x.y.z` / `x.y.z` / `*`）。解釈できない範囲は非対応として扱います |
+| `main`                        |      | エントリポイント（将来の Extension Host 用）                                                        |
+| `activationEvents`            |      | 起動イベント（最大32件）                                                                            |
+| `capabilities`                |      | 必要な権限の宣言（下記）。未知の権限は警告として表示され、許可されません                            |
+| `contributes.commands`        |      | 提供するコマンド（最大64件）                                                                        |
 
 ## Capabilities（権限宣言）
 

@@ -49,18 +49,18 @@ Workflow は Checkout、Node.js 設定、version 検証、`npm ci`、typecheck�
 
 ## リリースチェックリスト
 
-| 確認項目                  | 状態   |
-| ------------------------- | ------ |
-| 起動できる                | □      |
-| 基本 Workspace 操作が動く | □      |
-| `npm run typecheck`       | □      |
-| `npm run verify:all`      | □      |
-| `npm run build`           | □      |
-| `npm run package`         | □      |
-| CHANGELOG 更新            | □      |
-| Release Notes 準備        | □      |
-| 重大な既知問題の確認      | □      |
-| CI 成功                   | □      |
+| 確認項目                  | 状態 |
+| ------------------------- | ---- |
+| 起動できる                | □    |
+| 基本 Workspace 操作が動く | □    |
+| `npm run typecheck`       | □    |
+| `npm run verify:all`      | □    |
+| `npm run build`           | □    |
+| `npm run package`         | □    |
+| CHANGELOG 更新            | □    |
+| Release Notes 準備        | □    |
+| 重大な既知問題の確認      | □    |
+| CI 成功                   | □    |
 
 ## ロールバックとパッチ方針
 

@@ -28,11 +28,11 @@ Extension API は Semantic Versioning に従います。既存 API を破壊す�
 
 ## セキュリティチェックリスト
 
-| チェック項目 | 要件                                           |
-| ------------ | ---------------------------------------------- |
-| Manifest     | スキーマ検証と identifier / version の検証     |
-| Distribution | 信頼できる配布元と署名方針                     |
-| Process      | lifecycle、timeout、crash cleanup              |
-| Permissions  | capability の最小化と明示的な拒否              |
-| Logging      | 監査可能だが秘密情報を含まないログ             |
-| Removal      | 無効化・削除時のデータ処理                     |
+| チェック項目 | 要件                                       |
+| ------------ | ------------------------------------------ |
+| Manifest     | スキーマ検証と identifier / version の検証 |
+| Distribution | 信頼できる配布元と署名方針                 |
+| Process      | lifecycle、timeout、crash cleanup          |
+| Permissions  | capability の最小化と明示的な拒否          |
+| Logging      | 監査可能だが秘密情報を含まないログ         |
+| Removal      | 無効化・削除時のデータ処理                 |

@@ -86,22 +86,22 @@ Semantic Versioning と `vMAJOR.MINOR.PATCH` タグを使用します。リリ�
 
 ## ドキュメント
 
-| ドキュメント                                     | 目的                                  |
-| ------------------------------------------------ | ------------------------------------- |
-| [DEVELOPMENT.md](DEVELOPMENT.md)                 | 開発環境、ブランチ、品質ゲート        |
-| [CONTRIBUTING.md](CONTRIBUTING.md)               | Issue、Commit、Pull Request、レビュー |
-| [TESTING.md](TESTING.md)                         | 自動検証と手動 smoke test             |
-| [SECURITY.md](SECURITY.md)                       | 脅威モデル、IPC、Workspace、Process   |
-| [ARCHITECTURE.md](ARCHITECTURE.md)               | Process model と拡張ポイント          |
-| [RELEASE.md](RELEASE.md)                         | Version、Tag、Release workflow        |
-| [ROADMAP.md](ROADMAP.md)                         | フェーズと完了条件                    |
-| [CHANGELOG.md](CHANGELOG.md)                     | 利用者向け変更履歴                    |
-| [ユーザーガイド](docs/USER_GUIDE.md)             | 基本操作                              |
-| [キーボードショートカット](docs/KEYBOARD_SHORTCUTS.md) | VS Code 風ショートカット一覧    |
-| [IPC API リファレンス](docs/IPC_API.md)          | Preload API と IPC 契約               |
-| [拡張機能ガイド](docs/EXTENSION_GUIDE.md)        | 将来の拡張機能方針                    |
-| [既知の問題](docs/KNOWN_ISSUES.md)               | 未実装機能と検証上の制限              |
-| [ADR](docs/adr/)                                 | 重要な設計判断                        |
+| ドキュメント                                           | 目的                                  |
+| ------------------------------------------------------ | ------------------------------------- |
+| [DEVELOPMENT.md](DEVELOPMENT.md)                       | 開発環境、ブランチ、品質ゲート        |
+| [CONTRIBUTING.md](CONTRIBUTING.md)                     | Issue、Commit、Pull Request、レビュー |
+| [TESTING.md](TESTING.md)                               | 自動検証と手動 smoke test             |
+| [SECURITY.md](SECURITY.md)                             | 脅威モデル、IPC、Workspace、Process   |
+| [ARCHITECTURE.md](ARCHITECTURE.md)                     | Process model と拡張ポイント          |
+| [RELEASE.md](RELEASE.md)                               | Version、Tag、Release workflow        |
+| [ROADMAP.md](ROADMAP.md)                               | フェーズと完了条件                    |
+| [CHANGELOG.md](CHANGELOG.md)                           | 利用者向け変更履歴                    |
+| [ユーザーガイド](docs/USER_GUIDE.md)                   | 基本操作                              |
+| [キーボードショートカット](docs/KEYBOARD_SHORTCUTS.md) | VS Code 風ショートカット一覧          |
+| [IPC API リファレンス](docs/IPC_API.md)                | Preload API と IPC 契約               |
+| [拡張機能ガイド](docs/EXTENSION_GUIDE.md)              | 将来の拡張機能方針                    |
+| [既知の問題](docs/KNOWN_ISSUES.md)                     | 未実装機能と検証上の制限              |
+| [ADR](docs/adr/)                                       | 重要な設計判断                        |
 
 ## ロードマップ
 

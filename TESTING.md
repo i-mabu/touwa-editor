@@ -4,17 +4,17 @@ Touwa Editor のテストは、型、静的な境界検証、Build、Package を
 
 ## テストコマンド
 
-| コマンド                   | 目的                                                                                                                                             |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `npm run typecheck`        | TypeScript の strict チェック                                                                                                                    |
+| コマンド                   | 目的                                                                                                                                               |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run typecheck`        | TypeScript の strict チェック                                                                                                                      |
 | `npm test`                 | Node テスト: workspace service / watcher と tab / group model、VS Code 風 UX（21件）。Node 22.18 以降が必要（TypeScript ソースを直接実行するため） |
-| `npm run verify:security`  | Electron のセキュリティ設定チェック                                                                                                              |
-| `npm run verify:workspace` | Workspace 境界の実装チェック                                                                                                                     |
-| `npm run verify:electron`  | Main / Preload / Renderer 基盤チェック                                                                                                           |
-| `npm run verify:phase2`    | Phase 2（Tabs / Search / Watcher / Atomic Write）の静的検証                                                                                      |
-| `npm run verify:all`       | 上記 verification の一括実行                                                                                                                     |
-| `npm run build`            | Electron Vite の production ビルド                                                                                                               |
-| `npm run package`          | electron-builder の package スモークテスト                                                                                                       |
+| `npm run verify:security`  | Electron のセキュリティ設定チェック                                                                                                                |
+| `npm run verify:workspace` | Workspace 境界の実装チェック                                                                                                                       |
+| `npm run verify:electron`  | Main / Preload / Renderer 基盤チェック                                                                                                             |
+| `npm run verify:phase2`    | Phase 2（Tabs / Search / Watcher / Atomic Write）の静的検証                                                                                        |
+| `npm run verify:all`       | 上記 verification の一括実行                                                                                                                       |
+| `npm run build`            | Electron Vite の production ビルド                                                                                                                 |
+| `npm run package`          | electron-builder の package スモークテスト                                                                                                         |
 
 ## 標準の検証手順
 
@@ -34,14 +34,14 @@ npm run package
 
 ## Workspace セキュリティのケース
 
-| ケース                     | 期待結果        |
-| -------------------------- | --------------- |
-| `src/index.ts` の読み込み  | 成功            |
-| `../outside.txt`           | 拒否            |
-| `/absolute/path`           | 拒否            |
-| Workspace 外を指す symlink | 拒否            |
-| ディレクトリの file read   | 拒否            |
-| 20 MB を超える保存内容     | 拒否            |
+| ケース                     | 期待結果 |
+| -------------------------- | -------- |
+| `src/index.ts` の読み込み  | 成功     |
+| `../outside.txt`           | 拒否     |
+| `/absolute/path`           | 拒否     |
+| Workspace 外を指す symlink | 拒否     |
+| ディレクトリの file read   | 拒否     |
+| 20 MB を超える保存内容     | 拒否     |
 
 境界チェックは `path.resolve` と `realpath` の両方を使用します。
 
