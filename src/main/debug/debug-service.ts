@@ -322,6 +322,10 @@ export class DebugService {
   private started = false;
   private expectingEntryPause = false;
   private terminatedEmitted = false;
+  /** True once this service closes the CDP socket on purpose
+   * (program finished, stop, dispose): requests still in flight
+   * then fail with "connection closed", which is expected. */
+  private closingExpected = false;
   private readonly breakpoints = new Map<string, number[]>();
   private readonly breakpointIds = new Map<string, string[]>();
   private readonly scriptUrls = new Map<string, string>();
@@ -371,6 +375,7 @@ export class DebugService {
     this.hooks = hooks;
     this.started = false;
     this.terminatedEmitted = false;
+    this.closingExpected = false;
     this.breakpoints.clear();
     for (const breakpoint of breakpoints) {
       if (!isDebuggablePath(breakpoint.relativePath)) continue;
@@ -399,6 +404,7 @@ export class DebugService {
             if (
               stderrTail.includes("Waiting for the debugger to disconnect")
             ) {
+              this.closingExpected = true;
               this.cdp?.close();
             }
           }
@@ -530,24 +536,47 @@ export class DebugService {
     if (this.cdp) await this.applyBreakpoints(relativePath, lines);
   }
 
+  /**
+   * A "connection closed" rejection is benign once termination has
+   * begun: resuming a program that exits immediately races its own
+   * response against the deliberate socket close, and the caller
+   * must not see that as an error.
+   */
+  private isBenignClosedError(error: unknown): boolean {
+    return (
+      (this.closingExpected || this.terminatedEmitted) &&
+      error instanceof Error &&
+      error.message === "Debugger connection closed."
+    );
+  }
+
+  private async sendControl(method: string): Promise<void> {
+    try {
+      await this.cdp?.send(method);
+    } catch (e) {
+      if (this.isBenignClosedError(e)) return;
+      throw e;
+    }
+  }
+
   async resume(): Promise<void> {
-    await this.cdp?.send("Debugger.resume");
+    await this.sendControl("Debugger.resume");
   }
 
   async stepOver(): Promise<void> {
-    await this.cdp?.send("Debugger.stepOver");
+    await this.sendControl("Debugger.stepOver");
   }
 
   async stepInto(): Promise<void> {
-    await this.cdp?.send("Debugger.stepInto");
+    await this.sendControl("Debugger.stepInto");
   }
 
   async stepOut(): Promise<void> {
-    await this.cdp?.send("Debugger.stepOut");
+    await this.sendControl("Debugger.stepOut");
   }
 
   async pause(): Promise<void> {
-    await this.cdp?.send("Debugger.pause");
+    await this.sendControl("Debugger.pause");
   }
 
   /** Variables of the paused frame's scopes (global scope excluded). */
@@ -581,10 +610,16 @@ export class DebugService {
 
   private async readProperties(objectId: string): Promise<DebugVariable[]> {
     if (!this.cdp) return [];
-    const result = await this.cdp.send<{ result?: unknown }>(
-      "Runtime.getProperties",
-      { objectId, ownProperties: true },
-    );
+    let result: { result?: unknown } | undefined;
+    try {
+      result = await this.cdp.send<{ result?: unknown }>(
+        "Runtime.getProperties",
+        { objectId, ownProperties: true },
+      );
+    } catch (e) {
+      if (this.isBenignClosedError(e)) return [];
+      throw e;
+    }
     return mapRemoteProperties(result?.result)
       .slice(0, MAX_VARIABLES)
       .map((variable) => ({
@@ -613,6 +648,7 @@ export class DebugService {
   async stop(): Promise<void> {
     const cdp = this.cdp;
     this.cdp = null;
+    this.closingExpected = true;
     cdp?.close();
     if (this.sessionId !== null) {
       const id = this.sessionId;
