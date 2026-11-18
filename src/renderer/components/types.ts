@@ -20,6 +20,32 @@ export type SearchMatch = {
   lineText: string;
 };
 
+export type GitStatusEntry = {
+  relativePath: string;
+  originalPath?: string;
+  indexStatus: string;
+  worktreeStatus: string;
+  kind: "tracked" | "renamed" | "unmerged" | "untracked" | "ignored";
+};
+
+export type GitStatus = {
+  isRepository: boolean;
+  branch: string | null;
+  upstream: string | null;
+  ahead: number;
+  behind: number;
+  entries: GitStatusEntry[];
+  truncated: boolean;
+};
+
+export type GitCommit = {
+  hash: string;
+  shortHash: string;
+  subject: string;
+  authorName: string;
+  authorTime: number;
+};
+
 export function languageForPath(relativePath: string): string {
   const ext = relativePath.split(".").pop()?.toLowerCase() ?? "";
   switch (ext) {

@@ -4,6 +4,7 @@ const checks = [
   "verify:workspace",
   "verify:electron",
   "verify:phase2",
+  "verify:phase3",
 ];
 for (const check of checks) {
   await new Promise((resolve, reject) => {

@@ -37,6 +37,29 @@ type ReplaceResult = {
   skipped: string[];
 };
 type WorkspaceChange = { relativePath: string; kind: "change" | "rename" };
+type GitStatusEntry = {
+  relativePath: string;
+  originalPath?: string;
+  indexStatus: string;
+  worktreeStatus: string;
+  kind: "tracked" | "renamed" | "unmerged" | "untracked" | "ignored";
+};
+type GitStatus = {
+  isRepository: boolean;
+  branch: string | null;
+  upstream: string | null;
+  ahead: number;
+  behind: number;
+  entries: GitStatusEntry[];
+  truncated: boolean;
+};
+type GitCommit = {
+  hash: string;
+  shortHash: string;
+  subject: string;
+  authorName: string;
+  authorTime: number;
+};
 
 const api = {
   workspace: {
@@ -80,6 +103,11 @@ const api = {
       };
     },
   },
+  git: {
+    status: (): Promise<GitStatus> => ipcRenderer.invoke("git:status"),
+    log: (limit?: number): Promise<GitCommit[]> =>
+      ipcRenderer.invoke("git:log", limit ?? null),
+  },
   file: {
     read: (relativePath: string): Promise<FileSnapshot> =>
       ipcRenderer.invoke("file:read", relativePath),
@@ -109,4 +137,7 @@ export type {
   SearchResult,
   ReplaceResult,
   WorkspaceChange,
+  GitStatusEntry,
+  GitStatus,
+  GitCommit,
 };

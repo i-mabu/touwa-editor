@@ -4,18 +4,19 @@ Touwa Editor のショートカットは、VS Code の使い方に寄せてい�
 
 ## Touwa Editor のショートカット
 
-| Shortcut                  | Action                         |
-| ------------------------- | ------------------------------ |
-| Ctrl+Shift+P / F1         | Command Palette を開く         |
-| Ctrl+P                    | Quick Open（ファイル名で開く） |
-| Ctrl+Shift+E              | Explorer を表示する            |
-| Ctrl+Shift+F              | Search を表示する              |
-| Ctrl+B                    | サイドバーの表示／非表示       |
-| Ctrl+S                    | 保存                           |
-| Ctrl+Shift+S              | すべて保存                     |
-| Ctrl+W                    | アクティブなタブを閉じる       |
-| Ctrl+Tab / Ctrl+Shift+Tab | タブを次／前へ切り替える       |
-| Ctrl+G                    | 行へ移動                       |
+| Shortcut                  | Action                          |
+| ------------------------- | ------------------------------- |
+| Ctrl+Shift+P / F1         | Command Palette を開く          |
+| Ctrl+P                    | Quick Open（ファイル名で開く）  |
+| Ctrl+Shift+E              | Explorer を表示する             |
+| Ctrl+Shift+F              | Search を表示する               |
+| Ctrl+Shift+G              | Source Control（Git）を表示する |
+| Ctrl+B                    | サイドバーの表示／非表示        |
+| Ctrl+S                    | 保存                            |
+| Ctrl+Shift+S              | すべて保存                      |
+| Ctrl+W                    | アクティブなタブを閉じる        |
+| Ctrl+Tab / Ctrl+Shift+Tab | タブを次／前へ切り替える        |
+| Ctrl+G                    | 行へ移動                        |
 
 ## Monaco Editor のショートカット（エディタ内で有効）
 
@@ -37,7 +38,7 @@ Touwa Editor のショートカットは、VS Code の使い方に寄せてい�
 | VS Code の操作                                | Touwa Editor の現状                                     |
 | --------------------------------------------- | ------------------------------------------------------- |
 | Ctrl+`（統合ターミナル）                      | 未実装（Phase 3）                                       |
-| Ctrl+Shift+G（ソース管理）                    | 未実装（Phase 3、Git）                                  |
+| Ctrl+Shift+G（ソース管理）                    | 実装済み（Git パネル、Phase 3）                         |
 | Ctrl+Shift+X（拡張機能）                      | 未実装（Phase 4）                                       |
 | Ctrl+,（設定）                                | 未実装（Phase 4、Settings）                             |
 | Ctrl+N（新規無題ファイル）                    | Explorer の New File で空ファイルを作成する             |

@@ -17,6 +17,12 @@ import {
   createWorkspaceWatcher,
   type WorkspaceWatcher,
 } from "../workspace/watcher";
+import {
+  getGitLog,
+  getGitStatus,
+  DEFAULT_LOG_ENTRIES,
+  MAX_LOG_ENTRIES,
+} from "../git/git-service";
 
 const workspaceRoots = new Map<number, string>();
 const watchers = new Map<number, WorkspaceWatcher>();
@@ -176,6 +182,19 @@ export function registerIpc(): void {
   ipcMain.handle("file:stat", async (event, relativePath: unknown) => {
     if (typeof relativePath !== "string") throw new Error("Invalid path.");
     return statWorkspaceFile(requireRoot(event.sender.id), relativePath);
+  });
+  ipcMain.handle("git:status", async (event) =>
+    getGitStatus(requireRoot(event.sender.id)),
+  );
+  ipcMain.handle("git:log", async (event, limit: unknown) => {
+    if (limit === undefined || limit === null) {
+      return getGitLog(requireRoot(event.sender.id), DEFAULT_LOG_ENTRIES);
+    }
+    if (typeof limit !== "number" || !Number.isFinite(limit)) {
+      throw new Error("Invalid log limit.");
+    }
+    const count = Math.max(1, Math.min(Math.floor(limit), MAX_LOG_ENTRIES));
+    return getGitLog(requireRoot(event.sender.id), count);
   });
   ipcMain.handle(
     "file:write",

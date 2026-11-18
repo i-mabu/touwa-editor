@@ -8,6 +8,7 @@ import CommandPalette, {
 import Explorer from "./components/Explorer";
 import QuickOpen from "./components/QuickOpen";
 import SearchPanel from "./components/SearchPanel";
+import GitPanel from "./components/GitPanel";
 import type { FileEntry, SearchMatch } from "./components/types";
 import { languageForPath } from "./components/types";
 import {
@@ -31,7 +32,7 @@ import {
   type TabState,
 } from "./state/tabs";
 
-type Pane = "explorer" | "search";
+type Pane = "explorer" | "search" | "git";
 
 export default function App(): JSX.Element {
   const [root, setRoot] = useState("No workspace");
@@ -446,6 +447,15 @@ export default function App(): JSX.Element {
       },
     },
     {
+      id: "show-git",
+      title: "View: Show Source Control",
+      shortcut: "Ctrl+Shift+G",
+      run: () => {
+        setSidebarVisible(true);
+        setPane("git");
+      },
+    },
+    {
       id: "reload",
       title: "File: Reload from Disk",
       shortcut: "",
@@ -536,6 +546,10 @@ export default function App(): JSX.Element {
       } else if (key === "b") {
         e.preventDefault();
         setSidebarVisible((v) => !v);
+      } else if (key === "g" && e.shiftKey) {
+        e.preventDefault();
+        setSidebarVisible(true);
+        setPane("git");
       } else if (key === "g") {
         e.preventDefault();
         goToLine();
@@ -601,9 +615,12 @@ export default function App(): JSX.Element {
             SC
           </div>
           <div
-            className="activity-icon"
-            title="Source Control is planned for Phase 3"
-            onClick={() => setStatus("Git is planned for Phase 3")}
+            className={`activity-icon ${sidebarVisible && pane === "git" ? "active" : ""}`}
+            title="Source Control (Ctrl+Shift+G)"
+            onClick={() => {
+              setSidebarVisible(true);
+              setPane("git");
+            }}
           >
             GT
           </div>
@@ -623,7 +640,7 @@ export default function App(): JSX.Element {
               onRename={(entry) => void renameEntry(entry)}
               onDelete={(entry) => void deleteEntry(entry)}
             />
-          ) : (
+          ) : pane === "search" ? (
             <SearchPanel
               onSearch={(query, options) =>
                 window.touwa.workspace.search(query, options)
@@ -664,6 +681,19 @@ export default function App(): JSX.Element {
                   kind: "file",
                 };
                 void openFile(entry, undefined, match.line, match.column);
+              }}
+            />
+          ) : (
+            <GitPanel
+              onLoadStatus={() => window.touwa.git.status()}
+              onLoadLog={(limit) => window.touwa.git.log(limit)}
+              onOpenFile={(relativePath) => {
+                const entry: FileEntry = {
+                  name: relativePath.split("/").pop() ?? relativePath,
+                  relativePath,
+                  kind: "file",
+                };
+                void openFile(entry);
               }}
             />
           ))}

@@ -16,11 +16,12 @@
     "verify:workspace": "node scripts/verify-workspace.mjs",
     "verify:electron": "node scripts/verify-electron.mjs",
     "verify:phase2": "node scripts/verify-phase2.mjs",
-    "test": "node --test scripts/test-phase2.mjs scripts/test-tabs.mjs scripts/test-vscode-ux.mjs",
+    "test": "node --test scripts/test-phase2.mjs scripts/test-tabs.mjs scripts/test-vscode-ux.mjs scripts/test-phase3.mjs",
     "verify:all": "node scripts/verify-all.mjs",
     "build": "electron-vite build",
     "package": "electron-builder --publish never",
-    "preview": "electron-vite preview"
+    "preview": "electron-vite preview",
+    "verify:phase3": "node scripts/verify-phase3.mjs"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.6.0",

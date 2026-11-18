@@ -6,6 +6,10 @@
 
 ### Added
 
+- Phase 3 の共通基盤として、外部プロセス実行サービス（`src/main/process/process-runner.ts`）を追加しました。`shell: false`、argv 分離、cwd 検証、timeout（SIGTERM→SIGKILL）、stdout / stderr の分離捕捉と上限、exit code の返却を共通化しています。
+- Source Control パネル（Git、Ctrl+Shift+G／アクティビティバーの GT）を追加しました。ブランチと ahead/behind、ステージ済み／変更／未追跡／競合の一覧、最近のコミット（最大100件）を表示し、変更エントリのクリックでファイルを開けます。読み取り専用です。
+- `git.status` / `git.log` IPC と `verify:phase3`、`npm test` に Phase 3 のテスト7件（計28件）を追加しました。
+
 - 複数タブと Editor Groups（最大2グループ、Split Right／Close Group）
 - 再帰 Explorer（ディレクトリの遅延読み込み、ディレクトリ優先ソート）
 - Workspace Search / Replace（プレーン／正規表現、大文字小文字区別、結果クリックでジャンプ）

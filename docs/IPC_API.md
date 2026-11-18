@@ -101,6 +101,16 @@ const saved = await window.touwa.file.write(
 );
 ```
 
+## Git API（Phase 3、読み取り専用）
+
+### `git.status()`
+
+開いている Workspace に対して `git status --porcelain=v2 --branch` を Main の共通プロセス実行サービス（`src/main/process/process-runner.ts`、`shell: false`、argv 分離、timeout、出力上限）経由で実行し、パース結果を返します。戻り値は `GitStatus`（リポジトリかどうか、ブランチ、upstream との ahead/behind、変更エントリ一覧）です。パスは Workspace ルートからの相対パスです。Git が無い、またはリポジトリでない場合は例外にせず `isRepository: false` を返します。Renderer からコマンドや引数を指定することはできません。
+
+### `git.log(limit?)`
+
+最近のコミットを最大100件（既定30件）返します。戻り値は `GitCommit[]`（ハッシュ、短縮ハッシュ、件名、作者、日時）です。リポジトリでない、またはコミットが無い場合は空配列を返します。`limit` は Main で型と範囲を検証します。
+
 ## Error policy
 
 Renderer にはユーザーが対処できるメッセージを返し、内部パスや秘密情報を不要に露出させません。Main では原因を開発者向けログに記録しますが、token、password、環境変数の値は記録しません。

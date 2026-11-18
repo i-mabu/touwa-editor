@@ -447,3 +447,122 @@ button {
   background: #2565a8;
   color: #fff;
 }
+.git-panel {
+  width: 300px;
+  background: #171d28;
+  border-right: 1px solid #2b3443;
+  overflow: auto;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+}
+.git-body {
+  flex: 1;
+  overflow: auto;
+  padding: 0 8px 10px;
+}
+.git-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 6px 8px;
+}
+.git-actions button {
+  background: #283448;
+  border: 1px solid #3a4b64;
+  color: #dbe7f7;
+  border-radius: 4px;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+.git-actions button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.git-branch {
+  color: #e0e8f4;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.git-section {
+  padding: 10px 6px 4px;
+  color: #91a0b5;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+}
+.git-entry {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  color: #b8c5d7;
+  padding: 4px 6px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.git-entry:hover {
+  background: #25334a;
+  color: #fff;
+}
+.git-path {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.git-badge {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  line-height: 16px;
+  text-align: center;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #10141c;
+  background: #91a0b5;
+}
+.git-badge.modified {
+  background: #e2c08d;
+}
+.git-badge.added {
+  background: #89d185;
+}
+.git-badge.deleted {
+  background: #f48771;
+}
+.git-badge.renamed {
+  background: #75beff;
+}
+.git-badge.untracked {
+  background: #89d185;
+}
+.git-badge.unmerged {
+  background: #f48771;
+}
+.git-badge.ignored {
+  background: #5a6474;
+  color: #dbe7f7;
+}
+.git-commit {
+  padding: 5px 6px;
+  font-size: 12px;
+  color: #b8c5d7;
+}
+.git-hash {
+  color: #75beff;
+  font-family: Consolas, monospace;
+}
+.git-subject {
+  color: #e0e8f4;
+}
+.git-commit-meta {
+  color: #738198;
+  font-size: 11px;
+  padding-top: 1px;
+}

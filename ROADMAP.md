@@ -22,9 +22,16 @@ Explorer selection -> model registry -> tab state -> editor group layout
 
 ## Phase 3 — Developer Tools
 
-**Status: ⏳ 計画中**
+**Status: ⏳ 一部実装（共通基盤＋Git 読み取り）**
 
 Language Server、Completion、Hover、Signature Help、Diagnostics、Git、Integrated Terminal、Tasks、Debugger / DAP を追加します。外部 process は `shell: false`、argv 分離、cwd 検証、timeout、stop、exit code、stdout / stderr 分離を共通要件とします。
+
+実装済み:
+
+- 共通の外部プロセス実行サービス（`src/main/process/process-runner.ts`）。上記の共通要件を一箇所に集約し、コマンドは Main のサービスが選ぶ素の実行ファイル名のみ、出力は stdout / stderr 分離＋上限付きで捕捉します。
+- Git パネル（Source Control、Ctrl+Shift+G）。`git status --porcelain=v2 --branch` のパースによるブランチ・ahead/behind・ステージ済み／変更／未追跡の一覧と、最近のコミット（最大100件）の表示。読み取り専用で、変更エントリのクリックでファイルを開けます。
+
+未実装: Git のステージング／コミット等の書き込み操作、Language Server 系（Completion / Hover / Signature Help / Diagnostics）、Integrated Terminal、Tasks、Debugger / DAP。
 
 ## Phase 4 — Extensibility
 
