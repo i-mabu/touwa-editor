@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# touwa-editor のフルビルドを 1 コマンドで行うスクリプト。
+# 依存関係のインストール → 型チェック → テスト → 全検証 → ビルド を順に実行し、
+# 失敗したステップで即座に止まって、どのステップで落ちたかを表示する。
+# 手順は CI (.github/workflows/ci.yml) と同じ並びにする。
+
+# ===== 1. 準備 =====
+set -euo pipefail
+cd "$(dirname "$0")"
+
+step() {
+  echo
+  echo "===== $1 ====="
+}
+
+fail() {
+  echo "ERROR: ステップが失敗しました: $1" >&2
+  exit 1
+}
+
+command -v node >/dev/null 2>&1 || fail "前提チェック (Node.js が見つかりません)"
+command -v npm >/dev/null 2>&1 || fail "前提チェック (npm が見つかりません)"
+
+# ===== 2. 依存関係のインストール =====
+step "1/5 依存関係のインストール"
+if [ -f package-lock.json ]; then
+  npm ci --no-audit --no-fund || fail "依存関係のインストール (npm ci)"
+else
+  npm install --no-audit --no-fund || fail "依存関係のインストール (npm install)"
+fi
+
+# ===== 3. 型チェック =====
+step "2/5 型チェック (npm run typecheck)"
+npm run typecheck || fail "型チェック (npm run typecheck)"
+
+# ===== 4. テスト =====
+step "3/5 テスト (npm test)"
+npm test || fail "テスト (npm test)"
+
+# ===== 5. 全検証 =====
+step "4/5 全検証 (npm run verify:all)"
+npm run verify:all || fail "全検証 (npm run verify:all)"
+
+# ===== 6. ビルド =====
+step "5/5 ビルド (npm run build)"
+npm run build || fail "ビルド (npm run build)"
+
+# ===== 7. 完了 =====
+echo
+echo "BUILD OK: touwa-editor のビルドとテストがすべて成功しました (成果物: out/)"
