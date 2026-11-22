@@ -101,6 +101,10 @@ Semantic Versioning と `vMAJOR.MINOR.PATCH` タグを使用します。リリ�
 | [IPC API リファレンス](docs/IPC_API.md)                | Preload API と IPC 契約               |
 | [拡張機能ガイド](docs/EXTENSION_GUIDE.md)              | 将来の拡張機能方針                    |
 | [既知の問題](docs/KNOWN_ISSUES.md)                     | 未実装機能と検証上の制限              |
+| [デバッグ](docs/DEBUGGING.md)                          | 内蔵デバッガと診断                    |
+| [拡張機能の詳細](docs/EXTENSIONS.md)                    | 配置場所とマニフェスト                |
+| [設定リファレンス](docs/SETTINGS.md)                    | 設定の3層合成とキー                   |
+| [タスク](docs/TASKS.md)                                | tasks.json の定義と実行               |
 | [ADR](docs/adr/)                                       | 重要な設計判断                        |
 
 ## ロードマップ
