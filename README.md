@@ -2,7 +2,7 @@
 
 Touwa Editor は、Electron + React + TypeScript + Monaco Editor で構築する、長期保守可能なデスクトップコードエディタの Foundation です。Windows を主要対象としつつ、Main / Preload / Renderer の境界を明確に保つことで、将来の macOS / Linux 対応と機能拡張を妨げない構成を採用しています。
 
-## 機能
+## ✨ 機能
 
 - Monaco Editor による TypeScript / JavaScript 編集
 - Workspace のオープン、一覧表示、ファイル読み書き
@@ -22,7 +22,7 @@ Touwa Editor は、Electron + React + TypeScript + Monaco Editor で構築する
 - `path.resolve` / `realpath` による Workspace 境界チェック
 - TypeScript strict check、verification scripts、GitHub Actions CI
 
-## アーキテクチャ
+## 📁 アーキテクチャ
 
 ```text
 Renderer (React / Monaco)
@@ -34,7 +34,7 @@ Main (Workspace / FileSystem / OS)
 
 詳細は [ARCHITECTURE.md](ARCHITECTURE.md)、IPC の契約は [IPC_API.md](docs/IPC_API.md)、セキュリティ境界は [SECURITY.md](SECURITY.md) を参照してください。
 
-## 前提環境とインストール
+## 🚀 前提環境とインストール
 
 Node.js 22 LTS（22.18 以降。`npm test` が TypeScript ソースを直接実行するため）、npm、Git が必要です。依存関係を lockfile どおりにインストールします。
 
@@ -52,7 +52,7 @@ npm run dev
 
 開発ルールは [DEVELOPMENT.md](DEVELOPMENT.md)、貢献手順は [CONTRIBUTING.md](CONTRIBUTING.md) にまとめています。
 
-## テスト
+## 🧪 テスト
 
 ```bash
 npm run typecheck
@@ -63,7 +63,7 @@ npm run build
 
 検証の詳細は [TESTING.md](TESTING.md) を参照してください。`verify:all` は security、workspace、Electron foundation の検証を Node.js から直接実行します。
 
-## ビルドとパッケージ
+## 🚀 ビルドとパッケージ
 
 ```bash
 npm run build

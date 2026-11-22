@@ -206,8 +206,6 @@ export function mapRemoteProperties(properties: unknown): RawVariable[] {
   return variables;
 }
 
-type CdpResponse = { result?: unknown; error?: { message?: string } };
-
 /** Minimal Chrome DevTools Protocol client over a WebSocket. */
 class CdpClient {
   private readonly ws: WebSocket;
