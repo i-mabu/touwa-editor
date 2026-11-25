@@ -3,8 +3,10 @@ import path from "node:path";
 import { runProcess } from "../process/process-runner.ts";
 import { assertWorkspacePath } from "../workspace/path-security.ts";
 
-// ===== Tasks (Phase 3) =====
-// A workspace may declare tasks in .touwa/tasks.json:
+// ==========================================
+// 📌 Tasks (Phase 3)
+// ==========================================
+// 🗂️ A workspace may declare tasks in .touwa/tasks.json:
 //   { "tasks": [ { "label": "test", "command": "npm",
 //                  "args": ["test"], "cwd": "." } ] }
 // Security model:
@@ -128,7 +130,7 @@ export async function loadTasks(root: string): Promise<TasksListResult> {
   try {
     text = await fs.promises.readFile(file, "utf8");
   } catch {
-    // No tasks file is a normal state, not an error.
+    // ⚠️ No tasks file is a normal state, not an error.
     return { tasks: [], error: null };
   }
   try {
@@ -152,7 +154,7 @@ export async function runTask(
   if (error !== null) throw new Error(error);
   const task = tasks.find((entry) => entry.label === label);
   if (!task) throw new Error(`Task not found: ${label}`);
-  // The task's working directory must stay inside the workspace.
+  // 📁 The task's working directory must stay inside the workspace.
   const cwd =
     task.cwd === "."
       ? root

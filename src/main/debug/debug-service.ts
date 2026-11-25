@@ -5,13 +5,15 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { SessionManager } from "../process/session-manager.ts";
 import { assertWorkspacePath } from "../workspace/path-security.ts";
 
-// ===== Node.js debugger (Phase 3) =====
-// Launches a workspace JavaScript file under the V8 Inspector
+// ==========================================
+// 📌 Node.js debugger (Phase 3)
+// ==========================================
+// 📄 Launches a workspace JavaScript file under the V8 Inspector
 // (`node --inspect-brk`) and drives it over the Chrome DevTools
 // Protocol. The editor-facing API follows the Debug Adapter
 // Protocol's model — start / breakpoints / stepping / stack frames /
 // variables, with state and output delivered as events — while the
-// wire protocol to the debuggee is CDP, translated here.
+// 📝 wire protocol to the debuggee is CDP, translated here.
 //
 // Only Node.js targets are supported, and a system `node` must be
 // installed (the same requirement the language server already has).
@@ -90,7 +92,7 @@ export async function fetchInspectorWsUrl(
         if (found) return found.webSocketDebuggerUrl as string;
       }
     } catch {
-      // The inspector is not accepting connections yet; keep polling.
+      // 🔌 The inspector is not accepting connections yet; keep polling.
     }
     if (Date.now() > deadline) {
       throw new Error("The debugger did not start in time.");
@@ -306,7 +308,7 @@ class CdpClient {
     try {
       this.ws.close();
     } catch {
-      // Already closed; teardown continues.
+      // 📝 Already closed; teardown continues.
     }
   }
 }
@@ -351,7 +353,7 @@ export class DebugService {
     if (!isDebuggablePath(scriptRelativePath)) {
       throw new Error("Only .js / .mjs / .cjs files can be debugged.");
     }
-    // Node reports script URLs from the real path it loaded (on
+    // 🛤️ Node reports script URLs from the real path it loaded (on
     // Windows the temp dir and user profile often differ in 8.3
     // short-name vs long-name form), so canonicalize the root and
     // the script path; otherwise breakpoint URLs would not match
@@ -360,13 +362,13 @@ export class DebugService {
     try {
       realRoot = await fs.realpath(root);
     } catch {
-      // Keep the given root; mapping falls back to lexical paths.
+      // 📝 Keep the given root; mapping falls back to lexical paths.
     }
     let absoluteScript = assertWorkspacePath(realRoot, scriptRelativePath);
     try {
       absoluteScript = await fs.realpath(absoluteScript);
     } catch {
-      // The lexical path is used; the spawn below will surface a
+      // 🛤️ The lexical path is used; the spawn below will surface a
       // missing file as a debugger start failure.
     }
     this.root = realRoot;
@@ -393,7 +395,7 @@ export class DebugService {
         onData: (event) => {
           this.hooks?.onOutput(event.stream, event.text);
           if (event.stream === "stderr") {
-            // Once the program finishes, Node holds the process open
+            // ⚙️ Once the program finishes, Node holds the process open
             // until the inspector disconnects ("Waiting for the
             // debugger to disconnect..."). Closing the socket lets
             // it exit, which the session exit hook then reports as
@@ -441,7 +443,7 @@ export class DebugService {
       for (const [relativePath, lines] of this.breakpoints) {
         await this.applyBreakpoints(relativePath, lines);
       }
-      // With --inspect-brk the target reports a "Break on start"
+      // ▶️ With --inspect-brk the target reports a "Break on start"
       // pause in response to runIfWaitingForDebugger; handlePaused
       // resumes past it automatically (see expectingEntryPause).
       this.expectingEntryPause = true;
@@ -458,7 +460,7 @@ export class DebugService {
     reason?: string;
     callFrames?: unknown;
   }): void {
-    // The "Break on start" pause is the --inspect-brk entry stop,
+    // ▶️ The "Break on start" pause is the --inspect-brk entry stop,
     // not a user-visible one: resume past it immediately. This is
     // checked before the started flag so an early-arriving entry
     // pause can never leave the target stopped forever.
@@ -499,7 +501,7 @@ export class DebugService {
     try {
       absolute = await fs.realpath(absolute);
     } catch {
-      // Not on disk (yet); the lexical URL is the best available.
+      // 🔗 Not on disk (yet); the lexical URL is the best available.
     }
     const url = pathToFileURL(absolute).href;
     for (const id of this.breakpointIds.get(url) ?? []) {
@@ -518,7 +520,7 @@ export class DebugService {
           ids.push(result.breakpointId);
         }
       } catch {
-        // A line the server rejects (e.g. past the end of file) is
+        // 📄 A line the server rejects (e.g. past the end of file) is
         // skipped; the rest of the set still applies.
       }
     }

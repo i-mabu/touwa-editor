@@ -71,7 +71,7 @@ export default function GitPanel({
     try {
       setCommits(await onLoadLog(30));
     } catch {
-      // The status error (if any) is the one worth showing.
+      // ⚠️ The status error (if any) is the one worth showing.
     }
   }, [onLoadLog]);
 

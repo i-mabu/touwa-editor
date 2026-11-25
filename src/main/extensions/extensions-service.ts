@@ -1,8 +1,10 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
-// ===== Extension discovery (Phase 4) =====
-// Extensions are folders containing a package.json manifest, in
+// ==========================================
+// 🧩 Extension discovery (Phase 4)
+// ==========================================
+// 📝 Extensions are folders containing a package.json manifest, in
 // two locations: the user extensions directory (app data) and the
 // workspace's `.touwa/extensions`. This first increment only
 // discovers and validates manifests — nothing is executed. The
@@ -184,7 +186,7 @@ export async function scanExtensions(
         .map((d) => d.name)
         .sort();
     } catch {
-      // A missing extensions directory is a normal state.
+      // 📁 A missing extensions directory is a normal state.
       continue;
     }
     for (const folder of entries.slice(0, MAX_EXTENSIONS)) {

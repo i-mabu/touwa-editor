@@ -31,7 +31,7 @@ export default function TerminalPanel({
   const sessionRef = useRef<string | null>(null);
   const outputRef = useRef<HTMLPreElement | null>(null);
   const startedRef = useRef(false);
-  // App passes inline callbacks whose identity changes on every App
+  // 📝 App passes inline callbacks whose identity changes on every App
   // render; subscribe once and always call the latest via this ref.
   const handlersRef = useRef({ onData, onExit });
   handlersRef.current = { onData, onExit };
@@ -82,7 +82,7 @@ export default function TerminalPanel({
     return () => {
       if (sessionRef.current) void onKill(sessionRef.current);
     };
-    // Runs once on mount; start/onKill are stable props from App.
+    // ▶️ Runs once on mount; start/onKill are stable props from App.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -96,10 +96,10 @@ export default function TerminalPanel({
     const line = input;
     setInput("");
     if (mode === "pty") {
-      // The PTY echoes input itself; Enter is CR on a terminal.
+      // 📝 The PTY echoes input itself; Enter is CR on a terminal.
       void onWrite(sessionId, `${line}\r`).catch(() => undefined);
     } else {
-      // A pipe-based shell does not echo input, so echo it locally
+      // 📝 A pipe-based shell does not echo input, so echo it locally
       // to keep the console readable.
       setOutput((prev) => `${prev}${line}\n`);
       void onWrite(sessionId, `${line}\n`).catch(() => undefined);

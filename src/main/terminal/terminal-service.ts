@@ -3,8 +3,10 @@ import { SessionManager } from "../process/session-manager.ts";
 import type { SessionHooks } from "../process/session-manager.ts";
 import { PtyManager } from "../process/pty-manager.ts";
 
-// ===== Terminal sessions (Phase 3) =====
-// A terminal session is the user's shell running as a long-lived
+// ==========================================
+// 📌 Terminal sessions (Phase 3)
+// ==========================================
+// 🔗 A terminal session is the user's shell running as a long-lived
 // session in the workspace root. Sessions run on a pseudo-terminal
 // (node-pty) whenever that backend is available: interactive
 // prompts, password input without echo, Ctrl+C and isatty checks
@@ -74,7 +76,7 @@ export class TerminalService {
     for (const candidate of shellCandidates(process.platform, process.env)) {
       if (ptyAvailable) {
         try {
-          // Assigned as soon as start resolves; the hooks can only
+          // ▶️ Assigned as soon as start resolves; the hooks can only
           // fire after that (the manager attaches them once spawned).
           let currentId = "";
           const id = await this.pty.start(

@@ -1,7 +1,9 @@
 import { SessionManager } from "../process/session-manager.ts";
 
-// ===== LSP client core (Phase 3) =====
-// Minimal Language Server Protocol client over stdio, built on the
+// ==========================================
+// 📌 LSP client core (Phase 3)
+// ==========================================
+// 🖥️ Minimal Language Server Protocol client over stdio, built on the
 // shared session manager. Framing is the LSP base protocol:
 // "Content-Length: <bytes>\r\n\r\n<JSON>". The parser works on raw
 // Buffers because a message (or a multi-byte character) may be split
@@ -82,7 +84,7 @@ export class LspClient {
     cwd: string;
   }): Promise<void> {
     this.sessionId = await this.manager.start(options, {
-      // Text events are unused; the protocol runs on raw bytes.
+      // 📝 Text events are unused; the protocol runs on raw bytes.
       onData: () => undefined,
       onBinaryData: (chunk) => this.handleChunk(chunk),
       onExit: () => {
@@ -100,7 +102,7 @@ export class LspClient {
     try {
       messages = this.parser.push(chunk);
     } catch {
-      // A framing error desynchronizes the stream beyond repair;
+      // ⚠️ A framing error desynchronizes the stream beyond repair;
       // stop the client rather than guessing at boundaries.
       void this.stop();
       return;
@@ -148,7 +150,7 @@ export class LspClient {
     method: string,
     params: unknown,
   ): void {
-    // workspace/configuration expects one result per requested item;
+    // ⚙️ workspace/configuration expects one result per requested item;
     // everything else gets a null result, which servers tolerate for
     // the requests they send a fresh client (registerCapability,
     // workDoneProgress/create, applyEdit is answered as not applied
@@ -255,12 +257,12 @@ export class LspClient {
     try {
       await this.request("shutdown", null, 3_000);
     } catch {
-      // The server may already be gone; stopping continues regardless.
+      // 🖥️ The server may already be gone; stopping continues regardless.
     }
     try {
       this.notify("exit");
     } catch {
-      // Ignored: the session is being torn down anyway.
+      // 🔗 Ignored: the session is being torn down anyway.
     }
     this.manager.kill(this.sessionId);
     this.sessionId = null;

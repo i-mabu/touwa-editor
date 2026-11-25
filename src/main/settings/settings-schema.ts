@@ -1,5 +1,7 @@
-// ===== Settings schema (Phase 4) =====
-// The single declaration table for every user-facing setting.
+// ==========================================
+// 📌 Settings schema (Phase 4)
+// ==========================================
+// ⚙️ The single declaration table for every user-facing setting.
 // Only keys the implementation actually consumes are declared;
 // each key carries its type, range, default, and which layers may
 // write it. Keys scoped "user" are ignored in the workspace layer

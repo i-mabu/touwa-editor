@@ -10,7 +10,7 @@ export function fuzzyScore(query: string, text: string): number | null {
     if (t[i] === q[qi]) {
       qi += 1;
       consecutive += 1;
-      // Bonus for matches at the start, after a separator, or in a run.
+      // ▶️ Bonus for matches at the start, after a separator, or in a run.
       score +=
         10 +
         consecutive * 5 +
@@ -23,7 +23,7 @@ export function fuzzyScore(query: string, text: string): number | null {
     }
   }
   if (qi !== q.length) return null;
-  // Prefer shorter candidates when scores are close.
+  // 🚪 Prefer shorter candidates when scores are close.
   return score - t.length * 0.1;
 }
 

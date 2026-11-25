@@ -6,8 +6,10 @@ import { LspClient } from "./lsp-client.ts";
 import { assertWorkspacePath } from "../workspace/path-security.ts";
 import type { Diagnostic } from "../diagnostics/diagnostics-service.ts";
 
-// ===== Language server service (Phase 3) =====
-// Owns one TypeScript language server (typescript-language-server,
+// ==========================================
+// 🖥️ Language server service (Phase 3)
+// ==========================================
+// 🖥️ Owns one TypeScript language server (typescript-language-server,
 // bundled with the app) per workspace. The server prefers the
 // workspace's own TypeScript and falls back to the app's bundled
 // one. Documents are synced in full on open and on change (debounced
@@ -274,7 +276,7 @@ export function mapSignatureHelpResult(
 const MAX_DOCUMENT_CHARS = 2_000_000;
 
 export function serverEntryPath(): string {
-  // This module's depth differs between layouts (src/main/lsp in
+  // 📝 This module's depth differs between layouts (src/main/lsp in
   // tests, bundled into out/main in the app), so walk up from the
   // module directory until the bundled server is found.
   const relative = path.join(
@@ -417,7 +419,7 @@ export class LspService {
     if (!this.documents.has(uri) || !this.client) return;
     this.documents.delete(uri);
     this.client.notify("textDocument/didClose", { textDocument: { uri } });
-    // The server clears diagnostics for closed files on its own; if
+    // 🖥️ The server clears diagnostics for closed files on its own; if
     // it does not, a stale entry would linger, so clear explicitly.
     for (const listener of [...this.listeners]) {
       listener(relativePath, []);

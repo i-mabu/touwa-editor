@@ -46,7 +46,7 @@ export function createWorkspaceWatcher(
     );
   };
 
-  // baseRelative is the watched directory's own workspace-relative
+  // 📁 baseRelative is the watched directory's own workspace-relative
   // path ('' for the root). fs.watch reports filenames relative to the
   // watched directory, so subdirectory watchers (Linux) must prepend
   // it: without it a change to src/a.ts was reported as just "a.ts"
@@ -61,7 +61,7 @@ export function createWorkspaceWatcher(
         },
         (eventType, filename) => {
           if (typeof filename !== "string" || filename.length === 0) return;
-          // Ignore an event when any path segment is ignorable, so
+          // 🛤️ Ignore an event when any path segment is ignorable, so
           // recursive watches stay quiet for changes inside .git,
           // node_modules and hidden directories, not just at the top.
           if (filename.split(path.sep).some((segment) => isIgnorable(segment)))
@@ -77,7 +77,7 @@ export function createWorkspaceWatcher(
       watcher.on("error", () => undefined);
       watchers.push(watcher);
     } catch {
-      // Watching is best-effort; stat polling and save-time conflict
+      // 💾 Watching is best-effort; stat polling and save-time conflict
       // detection remain the safety net.
     }
   };
@@ -90,7 +90,7 @@ export function createWorkspaceWatcher(
           watchDir(path.join(root, entry.name), entry.name);
       }
     } catch {
-      // Ignore: root watch alone is enough as a fallback.
+      // 👀 Ignore: root watch alone is enough as a fallback.
     }
   }
 

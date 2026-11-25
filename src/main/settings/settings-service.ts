@@ -7,11 +7,13 @@ import {
   type SettingValue,
 } from "./settings-schema.ts";
 
-// ===== Settings service (Phase 4) =====
-// Layered settings, following the tasks/debug config precedent
+// ==========================================
+// 📌 Settings service (Phase 4)
+// ==========================================
+// ⚙️ Layered settings, following the tasks/debug config precedent
 // (pure parser, { values, error }, all-or-nothing per layer, Main
 // validates everything):
-//   defaults (schema) < user settings.json < workspace
+// 🗂️   defaults (schema) < user settings.json < workspace
 //   .touwa/settings.json, merged per key.
 // A layer that fails to parse or validate is dropped whole, with
 // its reason reported; the other layers still apply. Keys scoped
@@ -47,7 +49,7 @@ export function parseSettingsFile(
     const def = settingDef(key);
     if (!def) throw new Error(`未知の設定キーです: ${key}`);
     if (layer === "workspace" && def.scope === "user") {
-      // User-only keys are silently out of the workspace layer's
+      // 🗂️ User-only keys are silently out of the workspace layer's
       // reach (see the header comment).
       continue;
     }
@@ -64,7 +66,7 @@ async function loadSettingsFile(
   try {
     text = await fs.readFile(file, "utf8");
   } catch {
-    // No settings file is a normal state, not an error.
+    // ⚠️ No settings file is a normal state, not an error.
     return { values: {}, error: null };
   }
   try {

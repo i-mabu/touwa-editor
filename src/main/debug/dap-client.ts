@@ -4,8 +4,10 @@ import {
   encodeLspMessage,
 } from "../lsp/lsp-client.ts";
 
-// ===== Debug Adapter Protocol client (Phase 3) =====
-// DAP uses the same Content-Length framing as LSP, so the framing
+// ==========================================
+// 🐛 Debug Adapter Protocol client (Phase 3)
+// ==========================================
+// 📝 DAP uses the same Content-Length framing as LSP, so the framing
 // helpers are shared with the language-server client. This class
 // adds the DAP request/response/event bookkeeping on top: outgoing
 // requests carry a sequence number, responses resolve by
@@ -61,7 +63,7 @@ export class DapClient {
   ): Promise<void> {
     this.sessionId = await this.manager.start(options, {
       onData: (event) => {
-        // stdout carries the protocol itself; only stderr is
+        // 📝 stdout carries the protocol itself; only stderr is
         // human-readable adapter output.
         if (event.stream === "stderr") {
           hooks.onOutput?.("stderr", event.text);
@@ -121,7 +123,7 @@ export class DapClient {
         encodeLspMessage(message).toString("utf8"),
       );
     } catch {
-      // The session is going away; pending requests fail on exit.
+      // ⚠️ The session is going away; pending requests fail on exit.
     }
   }
 
@@ -149,7 +151,7 @@ export class DapClient {
       return;
     }
     if (message.type === "request" && typeof message.seq === "number") {
-      // Reverse requests (runInTerminal etc.) are not supported.
+      // 📝 Reverse requests (runInTerminal etc.) are not supported.
       this.sendRaw({
         seq: ++this.seq,
         type: "response",

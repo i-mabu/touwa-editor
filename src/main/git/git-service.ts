@@ -2,8 +2,10 @@ import path from "node:path";
 import { runProcess } from "../process/process-runner.ts";
 import { assertWorkspacePath } from "../workspace/path-security.ts";
 
-// ===== Git integration (Phase 3, read-only) =====
-// All git invocations go through the shared process runner with a
+// ==========================================
+// 📥 Git integration (Phase 3, read-only)
+// ==========================================
+// ⚙️ All git invocations go through the shared process runner with a
 // fixed argv built here in Main. The renderer only ever receives the
 // parsed result; it cannot influence the command line. Status uses
 // the porcelain v2 format because it is stable across git versions
@@ -141,7 +143,7 @@ export function parseGitStatusPorcelainV2(output: string): GitStatus {
         kind: "renamed",
       });
     } else if (tag === "u") {
-      // u <XY> <sub> <m1> <m2> <m3> <h1> <h2> <h3> <path>
+      // 🛤️ u <XY> <sub> <m1> <m2> <m3> <h1> <h2> <h3> <path>
       const parts = splitHead(line, 9);
       const xy = parts[1] ?? "..";
       status.entries.push({
@@ -202,7 +204,7 @@ export async function getGitStatus(root: string): Promise<GitStatus> {
       "--untracked-files=normal",
     ]);
   } catch {
-    // git is not installed or could not be started: the panel shows
+    // 🪟 git is not installed or could not be started: the panel shows
     // the same "not a repository" state instead of an error dialog.
     return NOT_A_REPOSITORY;
   }
@@ -215,8 +217,10 @@ export async function getGitStatus(root: string): Promise<GitStatus> {
   return parseGitStatusPorcelainV2(result.stdout);
 }
 
-// ===== Write operations =====
-// Paths come from the renderer (it lists what the status reported),
+// ==========================================
+// ✏️ Write operations
+// ==========================================
+// 🖥️ Paths come from the renderer (it lists what the status reported),
 // so every path is re-validated here: it must be a workspace-relative
 // path that stays inside the workspace, and it is always passed to
 // git after a "--" separator as its own argv element. Mutations
@@ -233,7 +237,7 @@ function assertMutationPaths(root: string, paths: string[]): string[] {
     throw new Error("Too many paths.");
   }
   return paths.map((relativePath) => {
-    // Validation only; git receives the original relative form so the
+    // 📥 Validation only; git receives the original relative form so the
     // pathspec matches what status reported (relative to the root).
     assertWorkspacePath(root, relativePath);
     if (relativePath.split(/[\\/]/).includes("..")) {
@@ -287,8 +291,10 @@ export async function discardChanges(
   return runGitMutation(root, ["restore", "--worktree", "--", ...targets]);
 }
 
-// ===== Remote sync =====
-// Network operations get a longer timeout and GIT_TERMINAL_PROMPT=0:
+// ==========================================
+// 🔄 Remote sync
+// ==========================================
+// 📥 Network operations get a longer timeout and GIT_TERMINAL_PROMPT=0:
 // the editor has no terminal to answer credential prompts with, so a
 // prompt must fail fast with git's own error instead of hanging until
 // the timeout. Authentication itself is left to the user's git
@@ -313,7 +319,7 @@ export async function fetchRemote(root: string): Promise<GitStatus> {
 }
 
 export async function pullChanges(root: string): Promise<GitStatus> {
-  // Fast-forward only: a diverged branch is reported as an error
+  // ⚠️ Fast-forward only: a diverged branch is reported as an error
   // instead of silently creating a merge commit from the editor.
   return runGitSync(root, ["pull", "--ff-only"]);
 }
@@ -323,7 +329,7 @@ export async function pushChanges(root: string): Promise<GitStatus> {
   if (!status.isRepository) {
     throw new Error("Not a git repository.");
   }
-  // First push of a branch sets its upstream to origin/<branch>;
+  // 🔀 First push of a branch sets its upstream to origin/<branch>;
   // afterwards a plain push follows the configured upstream.
   const args =
     status.upstream !== null || status.branch === null
@@ -369,7 +375,7 @@ export async function getGitLog(
     return [];
   }
   if (result.exitCode !== 0) {
-    // Not a repository, or a repository with no commits yet.
+    // 📝 Not a repository, or a repository with no commits yet.
     return [];
   }
   return parseGitLog(result.stdout);

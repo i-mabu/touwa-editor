@@ -1,4 +1,4 @@
-// Self-host Monaco Editor from the bundled `monaco-editor` package.
+// 📝 Self-host Monaco Editor from the bundled `monaco-editor` package.
 //
 // @monaco-editor/react loads Monaco from a CDN by default
 // (cdn.jsdelivr.net), so without this setup the packaged desktop app

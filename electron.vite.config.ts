@@ -5,7 +5,7 @@ export default defineConfig({
     build: {
       rollupOptions: {
         input: "src/main/main.ts",
-        // node-pty is a native module loaded lazily at runtime; it
+        // 📝 node-pty is a native module loaded lazily at runtime; it
         // must stay out of the bundle.
         external: ["node-pty"],
       },

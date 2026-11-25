@@ -108,7 +108,7 @@ export default function DebugPanel({
   const [output, setOutput] = useState("");
   const [error, setError] = useState("");
   const outputRef = useRef<HTMLPreElement | null>(null);
-  // App passes inline callbacks whose identity changes on every App
+  // 📝 App passes inline callbacks whose identity changes on every App
   // render; subscribe once and always call the latest via this ref.
   const handlersRef = useRef({ onState, onOutput, onFrameVariables });
   handlersRef.current = { onState, onOutput, onFrameVariables };
@@ -149,7 +149,7 @@ export default function DebugPanel({
     };
   }, []);
 
-  // Prefill the target from the active editor while no session runs.
+  // 🔗 Prefill the target from the active editor while no session runs.
   useEffect(() => {
     if (
       (statusRef.current === "idle" || statusRef.current === "terminated") &&
@@ -186,7 +186,7 @@ export default function DebugPanel({
     try {
       await onStop();
     } catch {
-      // Stopping is best-effort; the state event settles the UI.
+      // 📝 Stopping is best-effort; the state event settles the UI.
     }
     setStatus("terminated");
   }

@@ -29,7 +29,7 @@ export function resolveWindowsExecutable(
   );
   const dirs = (env.PATH ?? "").split(";").filter((dir) => dir.length > 0);
   for (const dir of dirs) {
-    // win32 joins explicitly: this helper only ever runs for
+    // 📝 win32 joins explicitly: this helper only ever runs for
     // Windows paths, whatever the host platform of the caller is.
     const candidates = hasExtension
       ? [path.win32.join(dir, command)]
@@ -41,8 +41,10 @@ export function resolveWindowsExecutable(
   return command;
 }
 
-// ===== PTY sessions (Phase 3) =====
-// Long-lived pseudo-terminal sessions via node-pty. node-pty is a
+// ==========================================
+// 📌 PTY sessions (Phase 3)
+// ==========================================
+// 📝 Long-lived pseudo-terminal sessions via node-pty. node-pty is a
 // native module, so it is loaded lazily and treated as optional:
 // when it cannot be loaded (not installed, wrong ABI in a packaged
 // build, no prebuild for the platform), loadModule() resolves to
@@ -165,7 +167,7 @@ export class PtyManager {
     try {
       proc.kill();
     } catch {
-      // The process may already be gone; the session is dropped either way.
+      // ⚙️ The process may already be gone; the session is dropped either way.
     }
     return true;
   }

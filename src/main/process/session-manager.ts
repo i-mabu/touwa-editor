@@ -6,8 +6,10 @@ import {
   assertValidCwd,
 } from "./process-runner.ts";
 
-// ===== Long-lived process sessions (Phase 3) =====
-// runProcess covers one-shot commands; sessions cover processes that
+// ==========================================
+// ⚙️ Long-lived process sessions (Phase 3)
+// ==========================================
+// 📝 runProcess covers one-shot commands; sessions cover processes that
 // stay alive and exchange data over time (terminal shells now,
 // language servers later). The safety contract is the same as the
 // one-shot runner: bare executable names chosen by Main services,
@@ -47,7 +49,7 @@ export type StartSessionOptions = {
   env?: NodeJS.ProcessEnv;
 };
 
-// Generous on purpose: terminal input is tiny, but an LSP didOpen
+// 📝 Generous on purpose: terminal input is tiny, but an LSP didOpen
 // carries a whole document (the LSP service caps documents at 2MB,
 // and JSON framing adds overhead on top of that).
 const MAX_WRITE_LENGTH = 8_000_000;
@@ -105,7 +107,7 @@ export class SessionManager {
       this.sessions.delete(id);
       hooks.onExit({ exitCode, signal });
     });
-    // After a successful spawn, a later 'error' (e.g. a failed kill)
+    // ⚠️ After a successful spawn, a later 'error' (e.g. a failed kill)
     // must not become an unhandled error event; 'close' still fires
     // and reports the exit.
     child.on("error", () => undefined);

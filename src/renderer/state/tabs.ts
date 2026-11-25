@@ -112,7 +112,7 @@ export function closeTab(
       if (group.id !== groupId) return group;
       const index = group.tabs.findIndex((tab) => tab.id === tabId);
       const tabs = group.tabs.filter((tab) => tab.id !== tabId);
-      // Activate the neighbour that slides into the closed tab's place
+      // 🗂️ Activate the neighbour that slides into the closed tab's place
       // (or the new last tab), not the group's last tab: closing a
       // middle tab used to jump the editor to the end of the tab bar.
       const activeTabId =

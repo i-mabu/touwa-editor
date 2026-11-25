@@ -92,7 +92,7 @@ export default function SettingsPanel({
           e instanceof Error ? e.message : "設定を保存できませんでした",
         );
       } finally {
-        // Success or failure, the input falls back to the effective
+        // ⚠️ Success or failure, the input falls back to the effective
         // value Main reports, so a rejected save never lingers.
         clearDraft(key);
         setBusy(false);
@@ -108,7 +108,7 @@ export default function SettingsPanel({
     setDrafts((prev) => ({ ...prev, [key]: text }));
   };
 
-  // Text and number inputs edit a local draft and only save on blur
+  // 💾 Text and number inputs edit a local draft and only save on blur
   // (or Enter), so a save never fires per keystroke.
   const commitText = (key: string): void => {
     const text = drafts[key];

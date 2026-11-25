@@ -10,8 +10,10 @@ import type {
   DebugVariable,
 } from "./debug-service.ts";
 
-// ===== External DAP debug session (Phase 3) =====
-// Drives an external Debug Adapter Protocol server (registered in
+// ==========================================
+// 🐛 External DAP debug session (Phase 3)
+// ==========================================
+// 🖥️ Drives an external Debug Adapter Protocol server (registered in
 // .touwa/debug.json) through the same editor-facing API as the
 // built-in Node.js debugger: start / breakpoints / stepping / stack
 // frames / variables, with state and output as events. The launch
@@ -161,7 +163,7 @@ export class DapDebugService {
         cwd: root,
         stopOnEntry: false,
       });
-      // Adapters announce readiness with the initialized event;
+      // 🔧 Adapters announce readiness with the initialized event;
       // proceed after it, or after a grace period for adapters
       // that never send it.
       await Promise.race([
@@ -173,7 +175,7 @@ export class DapDebugService {
       }
       this.configured = true;
       await client.request("configurationDone").catch(() => {
-        // Some adapters do not support configurationDone; the
+        // ⚙️ Some adapters do not support configurationDone; the
         // session is usable either way.
       });
       this.hooks?.onState({ status: "running" });
@@ -222,7 +224,7 @@ export class DapDebugService {
       }));
       this.hooks?.onState({ status: "paused", reason, frames });
     } catch {
-      // The session may have ended while fetching the trace; the
+      // 🔗 The session may have ended while fetching the trace; the
       // terminated path reports the final state.
     }
   }
@@ -239,7 +241,7 @@ export class DapDebugService {
         breakpoints: lines.map((line) => ({ line })),
       })
       .catch(() => {
-        // A rejected file (e.g. not loaded yet) keeps its stored
+        // 📄 A rejected file (e.g. not loaded yet) keeps its stored
         // set; the adapter applies what it can.
       });
   }

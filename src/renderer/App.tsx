@@ -73,7 +73,7 @@ export default function App(): JSX.Element {
         if (!cancelled) setSettingValues(result.effective);
       })
       .catch(() => {
-        // Settings fall back to the schema defaults in Main; a
+        // 📝 Settings fall back to the schema defaults in Main; a
         // failed read simply keeps the renderer's own defaults.
       });
     return () => {
@@ -112,7 +112,7 @@ export default function App(): JSX.Element {
   );
   const lspProvidersRegisteredRef = useRef(false);
   const monacoRef = useRef<Monaco | null>(null);
-  // Debugger state: breakpoints live in the renderer (the full set is
+  // 🖥️ Debugger state: breakpoints live in the renderer (the full set is
   // passed at start; edits during a session are pushed to Main).
   const [breakpoints, setBreakpoints] = useState<Map<string, number[]>>(
     new Map(),
@@ -185,7 +185,7 @@ export default function App(): JSX.Element {
     [],
   );
 
-  // Track the debug session in App as well: breakpoint edits are
+  // 🐛 Track the debug session in App as well: breakpoint edits are
   // pushed live only while a session runs, and the paused line is
   // highlighted in the editor.
   useEffect(() => {
@@ -229,7 +229,7 @@ export default function App(): JSX.Element {
     }
   }, [pendingJump, groups, reveal]);
 
-  // Language server sync: the renderer owns the text, so it mirrors
+  // 🖥️ Language server sync: the renderer owns the text, so it mirrors
   // open documents to the main process (changes debounced) and
   // collects the diagnostics the server publishes for the Problems
   // panel. Only TypeScript / JavaScript files are synced.
@@ -276,7 +276,7 @@ export default function App(): JSX.Element {
     [],
   );
 
-  // Requests (completion / hover / signature help) must not race the
+  // ✨ Requests (completion / hover / signature help) must not race the
   // 400ms debounce: flush the current text first so the server answers
   // against the same document the user sees.
   const lspSyncNow = useCallback(
@@ -307,7 +307,7 @@ export default function App(): JSX.Element {
     [],
   );
 
-  // Registers the language-server-backed Monaco providers once. The
+  // 🖥️ Registers the language-server-backed Monaco providers once. The
   // server owns completion / hover / signature help for TS/JS, so
   // Monaco's built-in providers for those features are disabled to
   // avoid duplicate suggestions.
@@ -341,7 +341,7 @@ export default function App(): JSX.Element {
               .completion(relativePath, position.lineNumber, position.column)
               .catch(() => []);
             if (token.isCancellationRequested) return { suggestions: [] };
-            // Monaco requires a range per item; when the server did
+            // 🖥️ Monaco requires a range per item; when the server did
             // not send a textEdit, replace the word at the cursor.
             const word = model.getWordUntilPosition(position);
             const defaultRange = {
@@ -454,7 +454,7 @@ export default function App(): JSX.Element {
         setEntries(result.entries);
         setGroups(emptyGroups());
         setQuickFiles([]);
-        // The main process keys language-server documents by root;
+        // 🖥️ The main process keys language-server documents by root;
         // diagnostics from the previous workspace no longer apply.
         setLspDiagnostics(new Map());
         setBreakpoints(new Map());
@@ -525,7 +525,7 @@ export default function App(): JSX.Element {
 
   const saveTab = useCallback(
     async (target: TabState, force: boolean): Promise<boolean> => {
-      // A second save for the same tab while one is in flight would send
+      // 💾 A second save for the same tab while one is in flight would send
       // the same expected mtime; once the first write lands, the second
       // is refused as a false "changed on disk" conflict against the
       // tab's own save. Ignore the duplicate instead.
@@ -623,7 +623,7 @@ export default function App(): JSX.Element {
       )
     )
       return;
-    // The same file can be open in another group (split); only close
+    // 📄 The same file can be open in another group (split); only close
     // the language-server document when the last tab for it goes away.
     const stillOpen = groupsRef.current.groups
       .flatMap((g) => g.tabs)
@@ -729,7 +729,7 @@ export default function App(): JSX.Element {
           entry.kind === "directory",
         ),
       );
-      // Re-sync language-server documents under their new paths.
+      // 🖥️ Re-sync language-server documents under their new paths.
       for (const openTab of openTabs) {
         const affected =
           entry.kind === "directory"
@@ -741,7 +741,7 @@ export default function App(): JSX.Element {
         lspClose(openTab.relativePath);
         lspOpen(renamedPath, openTab.content);
       }
-      // Breakpoints follow the rename as well.
+      // 📝 Breakpoints follow the rename as well.
       setBreakpoints((prev) => {
         const next = new Map<string, number[]>();
         for (const [bpPath, lines] of prev) {
@@ -788,7 +788,7 @@ export default function App(): JSX.Element {
         closeTabsForPath(prev, entry.relativePath, entry.kind === "directory"),
       );
       for (const affectedPath of affectedPaths) lspClose(affectedPath);
-      // Breakpoints on deleted files are dropped.
+      // 📝 Breakpoints on deleted files are dropped.
       setBreakpoints((prev) => {
         const next = new Map<string, number[]>();
         for (const [bpPath, lines] of prev) {
@@ -945,7 +945,7 @@ export default function App(): JSX.Element {
     },
   ];
 
-  // External-change detection: Main watcher events + polling as a safety net.
+  // 🛡️ External-change detection: Main watcher events + polling as a safety net.
   useEffect(() => {
     const unsubscribe = window.touwa.workspace.onChanged((change) => {
       const open = groupsRef.current.groups
@@ -993,7 +993,7 @@ export default function App(): JSX.Element {
     return () => clearInterval(timer);
   }, []);
 
-  // VS Code-style global shortcuts. Monaco keeps its own editor shortcuts
+  // 📝 VS Code-style global shortcuts. Monaco keeps its own editor shortcuts
   // (Ctrl+F / Ctrl+H find, Ctrl+D select next, Ctrl+/ comment, Alt+Up/Down
   // move line, Shift+Alt+Down duplicate line, Ctrl+Shift+K delete line).
   useEffect(() => {
@@ -1067,7 +1067,7 @@ export default function App(): JSX.Element {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-    // The handler reads everything else through refs (groupsRef,
+    // 📝 The handler reads everything else through refs (groupsRef,
     // editorsRef), so it only needs to re-register when the values it
     // closes over directly change. Without a dependency array it was
     // removed and re-added on every render — i.e. every keystroke in
@@ -1213,7 +1213,7 @@ export default function App(): JSX.Element {
                   replacement,
                   options,
                 );
-                // Replaced files that are open and clean are reloaded; dirty
+                // 📂 Replaced files that are open and clean are reloaded; dirty
                 // tabs are flagged so the user can resolve them.
                 for (const file of result.perFile) {
                   const open = groupsRef.current.groups
@@ -1453,7 +1453,7 @@ export default function App(): JSX.Element {
                         monacoRef.current = monacoInstance;
                         registerLspProviders(monacoInstance);
                         editorsRef.current.set(groupTab.id, instance);
-                        // Drop the reference when Monaco disposes the
+                        // 🗑️ Drop the reference when Monaco disposes the
                         // editor (tab closed), otherwise the map grows
                         // for the whole session and reveal() could act
                         // on a disposed instance.
@@ -1463,7 +1463,7 @@ export default function App(): JSX.Element {
                             groupTab.id,
                           );
                         });
-                        // Clicking the glyph margin toggles a
+                        // 📝 Clicking the glyph margin toggles a
                         // breakpoint for that line of this file.
                         instance.onMouseDown((e) => {
                           if (

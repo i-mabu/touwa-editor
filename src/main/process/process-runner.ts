@@ -1,8 +1,10 @@
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 
-// ===== Shared external-process runner (Phase 3 foundation) =====
-// Every Phase 3 feature that talks to an external program (Git,
+// ==========================================
+// ⚙️ Shared external-process runner (Phase 3 foundation)
+// ==========================================
+// 🌐 Every Phase 3 feature that talks to an external program (Git,
 // language servers, tasks, debuggers) goes through this runner so the
 // safety contract from ROADMAP.md lives in exactly one place:
 //   - shell: false, always. Arguments are passed as an argv array and

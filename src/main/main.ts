@@ -27,7 +27,7 @@ function createWindow(): void {
   });
   const devServerUrl = process.env.ELECTRON_RENDERER_URL;
   const rendererPath = path.join(__dirname, "../renderer/index.html");
-  // The Renderer may only ever display the dev server or its own
+  // 🖥️ The Renderer may only ever display the dev server or its own
   // bundled page. setWindowOpenHandler covers window.open, but not
   // in-page navigation (a link click or location change in compromised
   // content could otherwise take the window to a remote site that
@@ -41,7 +41,7 @@ function createWindow(): void {
   if (devServerUrl) {
     void window.loadURL(devServerUrl);
   } else {
-    // loadFile handles platform path separators; a hand-built
+    // 🪟 loadFile handles platform path separators; a hand-built
     // `file://${path.join(...)}` URL is malformed on Windows.
     void window.loadFile(rendererPath);
   }
@@ -60,7 +60,7 @@ app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
 });
 app.on("before-quit", () => {
-  // No shell session may outlive the app.
+  // 🔗 No shell session may outlive the app.
   terminalService.killAll();
   void lspService.dispose();
   void debugService.dispose();

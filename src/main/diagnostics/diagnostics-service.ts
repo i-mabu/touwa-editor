@@ -2,8 +2,10 @@ import fs from "node:fs";
 import path from "node:path";
 import { runProcess } from "../process/process-runner.ts";
 
-// ===== Diagnostics (Phase 3) =====
-// First checker: the workspace's own TypeScript compiler, run through
+// ==========================================
+// 📌 Diagnostics (Phase 3)
+// ==========================================
+// 🗂️ First checker: the workspace's own TypeScript compiler, run through
 // the shared process runner. `tsc --noEmit --pretty false` prints one
 // stable, machine-readable line per problem:
 //   src/a.ts(3,7): error TS2322: Type 'string' is not assignable...
@@ -75,7 +77,7 @@ export function parseTscOutput(output: string): Diagnostic[] {
         source: "tsc",
       });
     }
-    // Anything else (multi-line message continuations, summaries) is
+    // 📝 Anything else (multi-line message continuations, summaries) is
     // not a diagnostic line and is ignored.
   }
   return diagnostics;
@@ -111,7 +113,7 @@ export async function runDiagnostics(root: string): Promise<DiagnosticsResult> {
   if (result.timedOut) {
     return unavailable("型チェックがタイムアウトしました");
   }
-  // tsc exits 0 (clean), 1 (problems found) or 2 (compiler error);
+  // ⚠️ tsc exits 0 (clean), 1 (problems found) or 2 (compiler error);
   // in all cases stdout carries the diagnostic lines.
   const all = parseTscOutput(result.stdout);
   return {

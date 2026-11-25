@@ -99,7 +99,7 @@ function parseSearchOptions(value: unknown): SearchOptions {
     result.regex = options.regex;
   }
   if (options.maxMatches !== undefined) {
-    // SearchOptions advertises maxMatches and the service clamps it,
+    // 📝 SearchOptions advertises maxMatches and the service clamps it,
     // but it used to be silently dropped here.
     if (
       typeof options.maxMatches !== "number" ||
@@ -121,7 +121,7 @@ export function registerIpc(): void {
     const root = result.filePaths[0];
     const sender = event.sender;
     attachSenderCleanup(sender);
-    // List first: if the new workspace cannot be read, the previous
+    // 📥 List first: if the new workspace cannot be read, the previous
     // workspace and its watcher stay in place instead of being
     // replaced by a broken root with a live watcher.
     const entries = await listWorkspace(root);
@@ -320,7 +320,7 @@ export function registerIpc(): void {
       );
     },
   );
-  // Terminal sessions belong to the window that started them: output
+  // 📝 Terminal sessions belong to the window that started them: output
   // events go only to that window, only that window may write to or
   // kill them, and they are killed when the window is destroyed.
   const terminalOwners = new Map<string, number>();
@@ -334,7 +334,7 @@ export function registerIpc(): void {
   ipcMain.handle("terminal:start", async (event) => {
     const root = requireRoot(event.sender.id);
     const sender = event.sender;
-    // Assigned as soon as start resolves; the hooks can only fire
+    // ▶️ Assigned as soon as start resolves; the hooks can only fire
     // after that (the manager attaches them once the shell spawned).
     let currentId = "";
     const result = await terminalService.start(root, {
@@ -382,7 +382,7 @@ export function registerIpc(): void {
     terminalOwners.delete(sessionId);
     return killed;
   });
-  // The debugger runs one session at a time, owned by the window that
+  // 🕐 The debugger runs one session at a time, owned by the window that
   // started it: state/output events go only to that window, only that
   // window may control it, and it stops when the window is destroyed.
   let debugOwner: number | null = null;
@@ -427,7 +427,7 @@ export function registerIpc(): void {
     }
     return value as number[];
   };
-  // The backend is chosen per start: a file whose extension has an
+  // 📄 The backend is chosen per start: a file whose extension has an
   // external adapter in .touwa/debug.json goes to the DAP service,
   // Node.js files go to the built-in CDP debugger.
   let activeDebug: typeof debugService | typeof dapDebugService | null =
@@ -519,7 +519,7 @@ export function registerIpc(): void {
         throw new Error("Invalid breakpoints.");
       }
       const parsedLines = parseLines(lines);
-      // Breakpoints are edited whether or not a session is running;
+      // 🔗 Breakpoints are edited whether or not a session is running;
       // with no session there is nothing to apply them to yet (the
       // full set is passed again at debug:start).
       if (debugOwner === null) return;
@@ -545,7 +545,7 @@ export function registerIpc(): void {
     }
     return currentDebug()?.variables(ref as number) ?? [];
   });
-  // Language server documents are synced from the renderer (it owns
+  // 🖥️ Language server documents are synced from the renderer (it owns
   // the text). Diagnostics are forwarded to every window that has
   // subscribed by opening a document.
   const lspWatchers = new Set<number>();

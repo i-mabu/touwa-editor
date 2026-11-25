@@ -82,7 +82,7 @@ async function listOneDir(
   const dirents = await fs.readdir(dir, { withFileTypes: true });
   const visible = dirents.filter((entry) => !isHidden(entry.name));
   visible.sort((a, b) => a.name.localeCompare(b.name));
-  // Stat calls run in parallel: a directory can hold up to
+  // 📁 Stat calls run in parallel: a directory can hold up to
   // MAX_LIST_ENTRIES files and sequential stats are slow on Windows.
   const entries = await Promise.all(
     visible
@@ -111,7 +111,7 @@ async function listOneDir(
           }
         }
         if (entry.isSymbolicLink()) {
-          // List symlinks with the kind of their target. Opening one still
+          // 📝 List symlinks with the kind of their target. Opening one still
           // goes through the realpath boundary check in readWorkspaceFile /
           // statWorkspaceFile, so a link that escapes the workspace is
           // listed here but refused when opened. Broken links are shown
@@ -134,7 +134,7 @@ async function listOneDir(
         return null;
       }),
   );
-  // Directories first, then name. Sorting happens after symlink targets
+  // 📝 Directories first, then name. Sorting happens after symlink targets
   // are resolved so a link to a directory sorts with the directories.
   return entries
     .filter((entry): entry is FileEntry => entry !== null)
@@ -179,7 +179,7 @@ export async function statWorkspaceFile(
   const target = await assertExistingWorkspacePath(root, relativePath);
   const stat = await fs.stat(target);
   if (!stat.isFile()) throw new Error("Only files can be opened.");
-  // The hash needs the content, and the Renderer polls this for every
+  // 🖥️ The hash needs the content, and the Renderer polls this for every
   // open tab: refuse oversized files instead of reading them in full,
   // exactly like readWorkspaceFile does.
   if (stat.size > MAX_FILE_SIZE) throw new Error("File is too large to open.");
@@ -233,7 +233,7 @@ export async function writeWorkspaceFile(
   content: string,
   expectedMtimeMs?: number,
 ): Promise<FileSnapshot> {
-  // Compare UTF-8 bytes, not UTF-16 code units: with multibyte text the
+  // ⚖️ Compare UTF-8 bytes, not UTF-16 code units: with multibyte text the
   // old length check accepted files well over MAX_FILE_SIZE that
   // readWorkspaceFile would then refuse to open again.
   if (
@@ -486,14 +486,14 @@ export async function replaceInWorkspace(
     throw new Error("Replacement text is too long.");
   }
   if (options.regex) {
-    // Fail fast on an invalid pattern, before any file is touched.
+    // ⚠️ Fail fast on an invalid pattern, before any file is touched.
     try {
       new RegExp(query, options.caseSensitive ? "g" : "gi");
     } catch {
       throw new Error("Invalid regular expression.");
     }
   }
-  // Replace walks the files itself instead of reusing searchWorkspace:
+  // 📝 Replace walks the files itself instead of reusing searchWorkspace:
   // search results are capped at MAX_SEARCH_MATCHES, so building the
   // file list from them silently left every later file unreplaced
   // (and unreported) once a workspace had more matches than the cap.
@@ -528,7 +528,7 @@ export async function replaceInWorkspace(
     );
     if (count === 0 || next === content) continue;
     try {
-      // The mtime from before the read is the conflict guard: if the
+      // 📥 The mtime from before the read is the conflict guard: if the
       // file changed while it was being processed, the write is
       // refused and the file is reported as skipped.
       await writeWorkspaceFile(

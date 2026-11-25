@@ -41,7 +41,7 @@ export default function ProblemsPanel({
     void run();
   }, [run]);
 
-  // The tsc run replaces only its own results; language-server
+  // 🖥️ The tsc run replaces only its own results; language-server
   // diagnostics for open files are resident and persist across runs.
   const diagnostics = [
     ...(result?.diagnostics ?? []),

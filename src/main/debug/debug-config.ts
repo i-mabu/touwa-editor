@@ -1,8 +1,10 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
-// ===== External debug adapter configuration (Phase 3) =====
-// Workspaces can register external Debug Adapter Protocol servers
+// ==========================================
+// ⚙️ External debug adapter configuration (Phase 3)
+// ==========================================
+// 🐛 Workspaces can register external Debug Adapter Protocol servers
 // in `.touwa/debug.json`:
 //
 //   { "adapters": [
@@ -122,7 +124,7 @@ export async function loadDebugConfig(
   try {
     text = await fs.readFile(file, "utf8");
   } catch {
-    // No debug.json is a normal state, not an error.
+    // ⚠️ No debug.json is a normal state, not an error.
     return { adapters: [], error: null };
   }
   try {
