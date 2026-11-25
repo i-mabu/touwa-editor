@@ -75,6 +75,7 @@
 
 - 検索・置換・一覧の各 IPC 引数を Main で実行時検証し、検索対象から `.git` / `node_modules` などを除外します。保存時の競合チェックにより、外部で変更されたファイルを無言で上書きしません。
 - Renderer の画面遷移（`will-navigate`）を自アプリのページ以外へ行えないよう制限しました。
+- ビルド時依存の脆弱性対応として electron-builder を 25.1.8 から 26.18.0 へ更新しました（2026-11-25）。あわせて app-builder-lib が 26.18.0、builder-util-runtime が 9.7.0、tar が 6.2.1 から 7.5.23 へ上がり、tar の critical 1件・high 9件、app-builder-lib と builder-util-runtime の high 各1件が解消しました。いずれもパッケージング工程でのみ使われる依存で、エディタ自体の実行時には含まれません。electron-builder の設定変更は不要でした。
 
 ## v0.1.0（2026-10-06）
 
