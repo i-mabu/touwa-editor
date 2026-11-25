@@ -2,6 +2,14 @@
 
 Touwa Editor は、Electron + React + TypeScript + Monaco Editor で構築する、長期保守可能なデスクトップコードエディタの Foundation です。Windows を主要対象としつつ、Main / Preload / Renderer の境界を明確に保つことで、将来の macOS / Linux 対応と機能拡張を妨げない構成を採用しています。
 
+| 項目 | 内容 |
+|---|---|
+| バージョン | v0.1.0（package.json） |
+| 状態 | 開発中（v0.1.0 リリース済み、Phase 4 進行中） |
+| 入手先 | このリポジトリからビルド（「🚀 セットアップ」参照） |
+| 実装 | TypeScript（Electron + React + Monaco Editor、Node.js 22 LTS） |
+| 更新履歴 | [CHANGELOG.md](CHANGELOG.md) |
+
 ## ✨ 機能
 
 - Monaco Editor による TypeScript / JavaScript 編集
@@ -22,19 +30,7 @@ Touwa Editor は、Electron + React + TypeScript + Monaco Editor で構築する
 - `path.resolve` / `realpath` による Workspace 境界チェック
 - TypeScript strict check、verification scripts、GitHub Actions CI
 
-## 📁 アーキテクチャ
-
-```text
-Renderer (React / Monaco)
-        ↓ typed preload bridge
-Preload (contextBridge)
-        ↓ explicit IPC channels
-Main (Workspace / FileSystem / OS)
-```
-
-詳細は [ARCHITECTURE.md](ARCHITECTURE.md)、IPC の契約は [IPC_API.md](docs/IPC_API.md)、セキュリティ境界は [SECURITY.md](SECURITY.md) を参照してください。
-
-## 🚀 前提環境とインストール
+## 🚀 セットアップ
 
 Node.js 22 LTS（22.18 以降。`npm test` が TypeScript ソースを直接実行するため）、npm、Git が必要です。依存関係を lockfile どおりにインストールします。
 
@@ -44,13 +40,22 @@ cd touwa-editor
 npm ci
 ```
 
-## 開発
+### 開発
 
 ```bash
 npm run dev
 ```
 
 開発ルールは [DEVELOPMENT.md](DEVELOPMENT.md)、貢献手順は [CONTRIBUTING.md](CONTRIBUTING.md) にまとめています。
+
+### ビルドとパッケージ
+
+```bash
+npm run build
+npm run package
+```
+
+Build は Electron Vite、Package は electron-builder を使用します。主要なリリース検証では `npm ci` から Package までを実行します。
 
 ## 🧪 テスト
 
@@ -63,28 +68,35 @@ npm run build
 
 検証の詳細は [TESTING.md](TESTING.md) を参照してください。`verify:all` は security、workspace、Electron foundation の検証を Node.js から直接実行します。
 
-## 🚀 ビルドとパッケージ
+## 📋 仕様メモ
 
-```bash
-npm run build
-npm run package
+### アーキテクチャ
+
+```text
+Renderer (React / Monaco)
+        ↓ typed preload bridge
+Preload (contextBridge)
+        ↓ explicit IPC channels
+Main (Workspace / FileSystem / OS)
 ```
 
-Build は Electron Vite、Package は electron-builder を使用します。主要なリリース検証では `npm ci` から Package までを実行します。
+詳細は [ARCHITECTURE.md](ARCHITECTURE.md)、IPC の契約は [IPC_API.md](docs/IPC_API.md)、セキュリティ境界は [SECURITY.md](SECURITY.md) を参照してください。
 
-## セキュリティ
+### セキュリティ
 
 Renderer に Node.js API は公開しません。BrowserWindow は `contextIsolation`、`nodeIntegration: false`、sandbox を使用し、Main 側ですべての IPC 入力と Workspace 境界を検証します。脆弱性の報告は [SECURITY.md](SECURITY.md) を参照してください。
 
-## CI/CD
+## 🔗 関連
+
+### CI/CD
 
 Pull Request と push は Windows CI、平日は Scheduled CI、`v*.*.*` タグは Release workflow を実行します。Dependabot と npm lockfile update workflow も設定済みです。
 
-## リリース
+### リリース
 
 Semantic Versioning と `vMAJOR.MINOR.PATCH` タグを使用します。リリース手順は [RELEASE.md](RELEASE.md)、初回ノートは [Release Notes 0.1.0](docs/RELEASE_NOTES_0.1.0.md) を参照してください。
 
-## ドキュメント
+### ドキュメント
 
 | ドキュメント                                           | 目的                                  |
 | ------------------------------------------------------ | ------------------------------------- |
@@ -107,6 +119,6 @@ Semantic Versioning と `vMAJOR.MINOR.PATCH` タグを使用します。リリ�
 | [タスク](docs/TASKS.md)                                | tasks.json の定義と実行               |
 | [ADR](docs/adr/)                                       | 重要な設計判断                        |
 
-## ロードマップ
+### ロードマップ
 
 Phase 1 Foundation と Phase 2 Core Editor を実装済みで、Phase 3 Developer Tools を実装中です（Git、診断、Tasks、Terminal、言語サーバーの常駐診断まで対応）。残りの計画は [ROADMAP.md](ROADMAP.md) を参照してください。
