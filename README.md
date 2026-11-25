@@ -121,4 +121,4 @@ Semantic Versioning と `vMAJOR.MINOR.PATCH` タグを使用します。リリ�
 
 ### ロードマップ
 
-Phase 1 Foundation と Phase 2 Core Editor を実装済みで、Phase 3 Developer Tools を実装中です（Git、診断、Tasks、Terminal、言語サーバーの常駐診断まで対応）。残りの計画は [ROADMAP.md](ROADMAP.md) を参照してください。
+Phase 1 Foundation から Phase 3 Developer Tools まで実装済みで、Phase 4 を進行中です（拡張機能の検出・マニフェスト検証と Extensions パネル、Settings 基盤まで対応。拡張機能の実行は未対応）。残りの計画は [ROADMAP.md](ROADMAP.md) を参照してください。
